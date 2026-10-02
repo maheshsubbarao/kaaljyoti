@@ -23,10 +23,16 @@ jobs:
           flutter-version: '3.35.6'
           channel: 'stable'
           
-      - name: Recreate Android With Latest Template
+      - name: Recreate Android
         run: |
           rm -rf android
           flutter create . --platforms=android --project-name kaaljyoti
+          
+      - name: FIX CODE - onReorderItem Bug
+        run: |
+          sed -i 's/onReorderItem/onReorder/g' lib/screens/pdf_export_screen.dart
+          echo "Fixed pdf_export_screen.dart"
+          grep -n "onReorder" lib/screens/pdf_export_screen.dart
           
       - name: Get packages
         run: flutter pub get
