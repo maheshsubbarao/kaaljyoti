@@ -28,24 +28,23 @@ jobs:
           rm -rf android
           flutter create . --platforms=android --project-name kaaljyoti
           
-      - name: FIX ALL CODE BUGS
+      - name: FIX ALL DART BUGS
         run: |
-          find lib -name "*.dart" -exec sed -i 's/onReorderItem/onReorder/g' {} \;
-          sed -i 's/ResearchLabModule(),/\/\/ ResearchLabModule() - commented/g' lib/widgetsystem/registry.dart || true
-
-      - name: FIX Desugaring - THE FINAL BOSS
+          echo "Fixing onReorderItem in ALL files..."
+          find lib -type f -name "*.dart" -print -exec sed -i 's/onReorderItem/onReorder/g' {} \;
+          echo "Fixing ResearchLabModule..."
+          sed -i 's/ResearchLabModule(),/\/\/ ResearchLabModule disabled/g' lib/widgetsystem/registry.dart || true
+          echo "VERIFY:"
+          grep -rn "onReorderItem" lib/ || echo "No more onReorderItem - GOOD!"
+          grep -rn "ResearchLabModule" lib/widgetsystem/registry.dart || echo "ResearchLabModule fixed"
+          
+      - name: FIX Desugaring for flutter_local_notifications
         run: |
           FILE="android/app/build.gradle.kts"
-          echo "Patching $FILE"
-          # Add desugar dependency if not present
-          if ! grep -q "desugar_jdk_libs" "$FILE"; then
-            sed -i '/dependencies {/a \    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")' "$FILE"
-          fi
-          # Enable coreLibraryDesugaring
-          if ! grep -q "isCoreLibraryDesugaringEnabled" "$FILE"; then
-            sed -i '/compileOptions {/a \        isCoreLibraryDesugaringEnabled = true' "$FILE"
-          fi
-          cat "$FILE" | grep -A2 -B2 "desugar\|Desugar" || true
+          sed -i '/dependencies {/a \    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")' "$FILE"
+          sed -i '/compileOptions {/a \        isCoreLibraryDesugaringEnabled = true' "$FILE"
+          echo "Patched $FILE"
+          cat "$FILE"
           
       - name: Get packages
         run: flutter pub get
