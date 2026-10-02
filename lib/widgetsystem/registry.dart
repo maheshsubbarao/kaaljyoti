@@ -79,6 +79,7 @@ const List<AstroModule> _allModules = [
   SadeSatiModule(),
   ShadbalaModule(),
   BhavaBalaModule(),
+          ResearchLabModule(),
 ];
 
 final Map<String, AstroModule> moduleRegistry = {
