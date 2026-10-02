@@ -11,27 +11,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Java
+      - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'
           
-      - name: Setup Flutter
+      - name: Setup Flutter Latest
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.4'
+          flutter-version: '3.35.6'
           channel: 'stable'
           
-      - name: Recreate Android Folder
+      - name: Recreate Android With Latest Template
         run: |
-          flutter create . --platforms=android
-          ls android/
-          
-      - name: Fix Kotlin Version
-        run: |
-          sed -i 's/org.jetbrains.kotlin.android" version ".*"/org.jetbrains.kotlin.android" version "2.1.0"/g' android/settings.gradle
-          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '2.1.0'/g" android/build.gradle || true
+          rm -rf android
+          flutter create . --platforms=android --project-name kaaljyoti
+          cat android/settings.gradle | grep kotlin
           
       - name: Get packages
         run: flutter pub get
