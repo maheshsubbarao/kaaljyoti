@@ -27,7 +27,6 @@ jobs:
         run: |
           rm -rf android
           flutter create . --platforms=android --project-name kaaljyoti
-          cat android/settings.gradle | grep kotlin
           
       - name: Get packages
         run: flutter pub get
