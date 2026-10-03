@@ -30,21 +30,40 @@ jobs:
           
       - name: FIX ALL DART BUGS
         run: |
-          echo "Fixing onReorderItem in ALL files..."
-          find lib -type f -name "*.dart" -print -exec sed -i 's/onReorderItem/onReorder/g' {} \;
-          echo "Fixing ResearchLabModule..."
+          find lib -type f -name "*.dart" -exec sed -i 's/onReorderItem/onReorder/g' {} \;
           sed -i 's/ResearchLabModule(),/\/\/ ResearchLabModule disabled/g' lib/widgetsystem/registry.dart || true
-          echo "VERIFY:"
-          grep -rn "onReorderItem" lib/ || echo "No more onReorderItem - GOOD!"
-          grep -rn "ResearchLabModule" lib/widgetsystem/registry.dart || echo "ResearchLabModule fixed"
           
-      - name: FIX Desugaring for flutter_local_notifications
+      - name: FIX Desugaring PROPERLY
         run: |
-          FILE="android/app/build.gradle.kts"
-          sed -i '/dependencies {/a \    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")' "$FILE"
-          sed -i '/compileOptions {/a \        isCoreLibraryDesugaringEnabled = true' "$FILE"
-          echo "Patched $FILE"
-          cat "$FILE"
+          python3 << 'PY'
+          path = "android/app/build.gradle.kts"
+          with open(path, 'r') as f:
+              content = f.read()
+          
+          # 1. Add isCoreLibraryDesugaringEnabled = true inside compileOptions
+          if "isCoreLibraryDesugaringEnabled" not in content:
+              content = content.replace(
+                  "compileOptions {",
+                  "compileOptions {\n        isCoreLibraryDesugaringEnabled = true"
+              )
+          
+          # 2. Fix dependencies block - ensure it has desugar dep
+          if "desugar_jdk_libs" not in content:
+              # Replace empty dependencies {} or add inside
+              if "dependencies {}" in content:
+                  content = content.replace("dependencies {}", 'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}')
+              elif "dependencies {" in content:
+                  content = content.replace("dependencies {", 'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")')
+              else:
+                  # Add at end if no dependencies block
+                  content += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
+          
+          with open(path, 'w') as f:
+              f.write(content)
+          
+          print("=== PATCHED FILE ===")
+          print(content)
+          PY
           
       - name: Get packages
         run: flutter pub get
