@@ -836,4 +836,14 @@ class _KundliEditScreenState extends ConsumerState<KundliEditScreen> {
       ),
     );
   }
+    List<dynamic> lifeEventsFromStored(dynamic stored) {
+    try {
+      final v = (stored as dynamic).lifeEvents;
+      if (v is List) return v;
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
 }
