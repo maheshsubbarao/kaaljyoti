@@ -121,3 +121,9 @@ flutter_native_splash:
   android_12:
     image: "branding/generated/android12_emblem_1024.png"
     color: "#F8F3E8"
+
+flutter:
+  assets:
+    - assets/
+    - assets/JyotishAppCharts.txt
+    - assets/ephe/
