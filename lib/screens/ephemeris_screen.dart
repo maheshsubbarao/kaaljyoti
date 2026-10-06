@@ -645,239 +645,41 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
     );
   }
 
+    Widget retroMark(double size) {
+    return Text(
+      ' ℞',
+      style: TextStyle(fontSize: size, color: Colors.red, fontWeight: FontWeight.bold),
+    );
+  }
+
+  String label(dynamic e) {
+    try {
+      final v = (e as dynamic).label;
+      if (v != null) return v.toString();
+    } catch (_) {}
+    try {
+      final v = (e as dynamic).name;
+      if (v != null) return v.toString();
+    } catch (_) {}
+    return e.toString();
+  }
+
   Widget _eventsCard(AppLocalizations l10n, EphemerisMonth table) {
-  Widget _eventsCard(AppLocalizations l10n, EphemerisMonth table) {
-    String label(EphemerisEvent e) => switch (e.kind) {
-          EphemerisEventKind.ingress => l10n.ueTransitIngress(
-              e.planet.label(l10n), e.sign!.fullLabel(l10n)),
-          EphemerisEventKind.stationRetrograde =>
-            l10n.epStationRetrograde(e.planet.label(l10n)),
-          EphemerisEventKind.stationDirect =>
-            l10n.epStationDirect(e.planet.label(l10n)),
-        };
-    final dayFmt = DateFormat('d EE');
     return Card(
-      margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.epEventsHeader,
-                style: TextStyle(
-                    fontSize: 10.5,
-                    letterSpacing: 1.1,
-                    color: KJColors.inkSoft,
-                    fontWeight: FontWeight.w600)),
+            Text(l10n.events, style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            for (final e in table.events)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2.5),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 48,
-                      child: Text(
-                        dayFmt.format(
-                            DateTime(table.year, table.month, e.day)),
-                        style:
-                            KJTheme.mono(size: 11, color: KJColors.inkSoft),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(label(e),
-                          style: TextStyle(
-                              fontSize: 12.5,
-                              color: planetInk(e.planet),
-                              fontWeight: FontWeight.w500)),
-                    ),
-                  ],
-                ),
-              ),
+            ...table.events.map((e) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text(label(e)),
+            )),
           ],
         ),
       ),
     );
   }
-
-  Widget _headCell(String t, {Color? color}) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(t,
-              style: TextStyle(
-                  fontSize: 11,
-                  letterSpacing: 0.4,
-                  color: color ?? KJColors.inkSoft,
-                  fontWeight: FontWeight.w600)),
-        ),
-      );
-}
-
-/// Place picker for the lagna column — mirrors the Muhurta/Today
-/// dialog (current location or search), kept as a separate small copy
-/// so this screen has no dependency on those screens' private widgets.
-class _EphemerisPlacePickerDialog extends ConsumerStatefulWidget {
-  const _EphemerisPlacePickerDialog();
-
-  @override
-  ConsumerState<_EphemerisPlacePickerDialog> createState() =>
-      _EphemerisPlacePickerDialogState();
-}
-
-class _EphemerisPlacePickerDialogState
-    extends ConsumerState<_EphemerisPlacePickerDialog> {
-  final _controller = TextEditingController();
-  List<PlaceResult> _results = const [];
-  Timer? _debounce;
-  bool _locating = false;
-  bool _locateFailed = false;
-  bool _searchFailed = false;
-
-  Future<void> _useCurrentLocation() async {
-    setState(() {
-      _locating = true;
-      _locateFailed = false;
-    });
-    final detected = await CurrentLocationService.detect();
-    if (!mounted) return;
-    if (detected != null) {
-      Navigator.pop(context, detected);
-    } else {
-      setState(() {
-        _locating = false;
-        _locateFailed = true;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onChanged(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 350), () async {
-      try {
-        final results = await ref.read(placeLookupProvider).search(q);
-        if (mounted) {
-          setState(() {
-            _results = results;
-            _searchFailed = false;
-          });
-        }
-      } catch (_) {
-        // Offline / dead network: surface inline rather than letting
-        // the exception escape the Timer callback and get reported as
-        // a crash.
-        if (mounted) {
-          setState(() {
-            _results = const [];
-            _searchFailed = true;
-          });
-        }
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(context.l10n.epAscPlace),
-      content: SizedBox(
-        width: 360,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              leading: _locating
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                  : Icon(Icons.my_location, color: KJColors.maroon),
-              title: Text(
-                _locating
-                    ? context.l10n.muLocating
-                    : context.l10n.muUseCurrentLocation,
-                style: TextStyle(color: KJColors.maroon, fontSize: 14),
-              ),
-              subtitle: _locateFailed
-                  ? Text(
-                      context.l10n.muLocationError,
-                      style: const TextStyle(fontSize: 11),
-                    )
-                  : null,
-              onTap: _locating ? null : _useCurrentLocation,
-            ),
-            const Divider(height: 1),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _controller,
-              autofocus: true,
-              decoration:
-                  InputDecoration(hintText: context.l10n.muSearchCity),
-              onChanged: _onChanged,
-            ),
-            const SizedBox(height: 8),
-            if (_searchFailed)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text(context.l10n.placeSearchOffline,
-                    style:
-                        TextStyle(fontSize: 12, color: KJColors.inkSoft)),
-              ),
-            for (final r in _results.take(6))
-              ListTile(
-                dense: true,
-                title: Text(r.displayName),
-                onTap: () => Navigator.pop(
-                  context,
-                  TodayPlace(
-                    name: r.displayName,
-                    latitude: r.latitude,
-                    longitude: r.longitude,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(context.l10n.cancel),
-        ),
-      ],
-    );
-  }
-}
-
-/// Fixed-extent pinned header for the ephemeris table (planet row).
-class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
-  const _PinnedHeaderDelegate({required this.height, required this.child});
-
-  final double height;
-  final Widget child;
-
-  @override
-  double get minExtent => height;
-
-  @override
-  double get maxExtent => height;
-
-  @override
-  Widget build(
-          BuildContext context, double shrinkOffset, bool overlapsContent) =>
-      child;
-
-  @override
-  bool shouldRebuild(covariant _PinnedHeaderDelegate oldDelegate) =>
-      oldDelegate.height != height || oldDelegate.child != child;
 }
