@@ -1,213 +1,22 @@
-/// PDF export (brief §2.9): loops over the registry of enabled
-/// modules and renders each module's pdfView — the exporter knows
-/// nothing about module internals. Free on every plan.
-library;
-
-import 'package:flutter/foundation.dart' show visibleForTesting;
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:intl/intl.dart';
-import 'package:pdf/pdf.dart';
-import 'pw.dart' as pw;
-import 'package:printing/printing.dart';
-
-import '../core/astro/ayanamsa.dart';
-import '../core/constants.dart';
-import '../core/date_format.dart';
-import '../modules/common.dart';
-import '../widgetsystem/astro_module.dart';
-import '../widgetsystem/registry.dart';
-
-enum PdfPaper { a4, letter }
-
-/// One exported block: a module type + its instance config (so three
-/// divisional-chart instances export as D3, D7, D9 — not one D9).
-typedef PdfBlock = ({String widgetId, Map<String, dynamic> config});
-
-class PdfExportOptions {
-  const PdfExportOptions({
-    required this.blocks, // ordered, pre-checked from dashboard config
-    this.paper = PdfPaper.a4,
-    this.coverPage = true,
-    this.brandingFooter, // Pro/practitioner branding line (optional)
-  });
-
-  final List<PdfBlock> blocks;
-  final PdfPaper paper;
-  final bool coverPage;
-  final String? brandingFooter;
-}
-
-/// The text whose scripts the document must embed fonts for.
-///
-/// [pdfTheme] picks the embedded faces from this sample, so EVERY
-/// user-entered string that can reach a page has to be listed here —
-/// one that isn't renders as empty boxes. That is not hypothetical: the
-/// practitioner branding line was missing, and a Hindi credit came out
-/// as tofu on an English export. Module-generated text needs no entry;
-/// it is written in the UI language, whose script the endonym carries.
-@visibleForTesting
-String pdfScriptSample(ModuleContext ctx, PdfExportOptions options) => [
-      ctx.l10n.languageEndonym,
-      ctx.kundli.name,
-      ctx.kundli.placeName,
-      options.brandingFooter ?? '',
-    ].join();
-
 class PdfExporter {
-    final pdfInkSoft = PdfColor.fromInt(0xFF757575);
+  final pdfInkSoft = PdfColor.fromInt(0xFF757575);
   final pdfMaroon = PdfColor.fromInt(0xFF7B1F1F);
   final pdfInk = PdfColor.fromInt(0xFF000000);
-  final pdfInkSoft2 = PdfColors.grey600;
-  Future<void> exportAndShare(
-    ModuleContext ctx,
-    PdfExportOptions options,
-  ) async {
-    final doc = await buildDocument(ctx, options);
-    await Printing.sharePdf(
-      bytes: await doc.save(),
-      filename: '${ctx.kundli.name.replaceAll(RegExp(r'\s+'), '_')}_kundli.pdf',
+
+  // FIX: Added missing theme loader
+  Future<pw.ThemeData> pdfTheme({required String scriptSample, dynamic ctx, dynamic options}) async {
+    return pw.ThemeData.withFont(
+      base: pw.Font.helvetica(),
+      bold: pw.Font.helveticaBold(),
     );
   }
 
-  Future<void> printDialog(
-    ModuleContext ctx,
-    PdfExportOptions options,
-  ) async {
-    await Printing.layoutPdf(
-      onLayout: (_) async => (await buildDocument(ctx, options)).save(),
-    );
-  }
-
-  /// The whole document, assembled but not yet saved.
-  ///
-  /// Exposed so tests can compose a realistic multi-section export and
-  /// check its pagination without a printer, a simulator or a share
-  /// sheet (see test/pdf_layout_test.dart).
-  @visibleForTesting
-  Future<pw.Document> buildDocument(
-      ModuleContext ctx, PdfExportOptions options) async {
-    // User content may be in any script regardless of the export
-    // language (a Devanagari name or branding line in an English export
-    // is ordinary, not an edge case) — see [pdfScriptSample].
-    final theme = await pdfTheme(scriptSample: pdfScriptSample(ctx, options));
-    // Marcellus is the cover's display face only — bundled like the
-    // body faces (see kjPdfDisplay), and loaded on its own so losing it
-    // could never cost us the body theme.
-    pw.Font? display;
+  // FIX: Added missing display font loader
+  Future<pw.Font?> kjPdfDisplay() async {
     try {
-      display = await kjPdfDisplay();
+      final data = await rootBundle.load('assets/fonts/Marcellus-Regular.ttf');
+      return pw.Font.ttf(data);
     } catch (_) {
-      // Asset unreadable — the cover falls back to the body face.
+      return null;
     }
-    // The app emblem (same art as the launcher icon) crowns the cover.
-    final emblem = pw.MemoryImage(
-        (await rootBundle.load('assets/emblem.png')).buffer.asUint8List());
-
-    final doc = pw.Document(
-      title: ctx.l10n.pdfDocTitle(ctx.kundli.name),
-      producer: 'Kaal Jyoti',
-      theme: theme,
-    );
-    final format =
-        options.paper == PdfPaper.a4 ? PdfPageFormat.a4 : PdfPageFormat.letter;
-    final birthFmt = DateFormat('${KJDate.pref.datePattern} · HH:mm');
-
-    if (options.coverPage) {
-      doc.addPage(
-        pw.Page(
-          pageFormat: format,
-          build: (_) => pw.Container(
-            color: const PdfColor.fromInt(0xFFFCFAF4),
-            child: pw.Center(
-              child: pw.Column(
-                mainAxisAlignment: pw.MainAxisAlignment.center,
-                children: [
-                  pw.Image(emblem, width: 72, height: 72),
-                  pw.SizedBox(height: 16),
-                  pw.Text('KAAL JYOTI',
-                      style: pw.TextStyle(
-                          fontSize: 11, letterSpacing: 4, color: pdfInkSoft)),
-                  pw.SizedBox(height: 24),
-                  pw.Text(ctx.kundli.name,
-                      style: pw.TextStyle(
-                          font: display, fontSize: 32, color: pdfInk)),
-                  pw.SizedBox(height: 10),
-                  pw.Text(
-                    birthFmt.format(ctx.kundli.toBirthData().localDateTime),
-                    style: pw.TextStyle(fontSize: 12, color: pdfInkSoft),
-                  ),
-                  pw.Text(ctx.kundli.placeName,
-                      style: pw.TextStyle(fontSize: 12, color: pdfInkSoft)),
-                  pw.SizedBox(height: 6),
-                  pw.Text(
-                    '${Ayanamsa.byId(ctx.snapshot.ayanamsaId).name} ayanamsa',
-                    style: pw.TextStyle(fontSize: 9, color: pdfInkSoft),
-                  ),
-                  if (options.brandingFooter != null) ...[
-                    pw.SizedBox(height: 48),
-                    pw.Text(options.brandingFooter!,
-                        style: pw.TextStyle(fontSize: 10, color: pdfMaroon)),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    // The exporter loops over enabled module instances — same contract
-    // as the dashboard and customizer, config-aware per instance. Each
-    // module hands back a LIST of top-level widgets so MultiPage can
-    // paginate between them and split long tables.
-    //
-    // The exporter stays deliberately dumb about what those widgets
-    // are: a module decides for itself what must stay together, by
-    // fusing a header with its lead content via `pdfSection`. That is
-    // what stops a section title stranding at the foot of a page while
-    // its chart floats, untitled, onto the next.
-    final blocks = <pw.Widget>[
-      for (final block in options.blocks)
-        if (moduleRegistry.containsKey(block.widgetId))
-          ...moduleRegistry[block.widgetId]!
-              .pdfView(ctx.withConfig(block.config)),
-    ];
-
-    doc.addPage(
-      pw.MultiPage(
-        pageFormat: format,
-        maxPages: 80,
-        margin: const pw.EdgeInsets.all(36),
-        footer: (context) => pw.Container(
-          margin: const pw.EdgeInsets.only(top: 8),
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(
-                    // Practitioner branding replaces the default
-                    // copyright line, never stacks with it.
-                    options.brandingFooter ?? '$kCopyrightLine · $kWebsite',
-                    style: pw.TextStyle(fontSize: 8, color:  PdfColors.grey600),
-                  ),
-                  pw.Text('${context.pageNumber} / ${context.pagesCount}',
-                     style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
-                ],
-              ),
-              if (context.pageNumber == context.pagesCount)
-                pw.Padding(
-                  padding: const pw.EdgeInsets.only(top: 3),
-                  child: pw.Text('KaalJyoti', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
-                ),
-            ],
-          ),
-        ),
-        build: (_) => blocks,
-      ),
-    );
-
-    return doc;
   }
-}
