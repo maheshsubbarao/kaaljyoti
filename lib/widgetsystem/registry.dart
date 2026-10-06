@@ -93,7 +93,6 @@ const List<AstroModule> _allModules = [
   SATechniqueModule(),
   PDTechniqueModule(),
   APTechniqueModule(),
-  TNMasterModule(),
 ];
 
 final Map<String, AstroModule> moduleRegistry = {
