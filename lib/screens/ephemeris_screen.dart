@@ -637,7 +637,15 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
       ),
     );
   }
+  
+  Widget retroMark(double size) {
+    return Text(
+      ' ℞',
+      style: TextStyle(fontSize: size, color: Colors.red, fontWeight: FontWeight.bold),
+    );
+  }
 
+  Widget _eventsCard(AppLocalizations l10n, EphemerisMonth table) {
   Widget _eventsCard(AppLocalizations l10n, EphemerisMonth table) {
     String label(EphemerisEvent e) => switch (e.kind) {
           EphemerisEventKind.ingress => l10n.ueTransitIngress(
