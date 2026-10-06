@@ -1008,8 +1008,18 @@ String moduleCategoryLabel(AppLocalizations l10n, String category) =>
       'your_chart_matched' => l10n.ntYourChartMatched,
       'request_approved' => l10n.ntRequestApproved,
       'request_rejected' => l10n.ntRequestRejected,
-      'report_actioned' => l10n.ntReportActioned,
-      'report_dismissed' => l10n.ntReportDismissed,
+      String notificationTypeLabel(AppLocalizations l10n, String type, dynamic n) => switch (type) {
+  'report_actioned' => l10n.ntReportActioned,
+  'report_dismissed' => l10n.ntReportDismissed,
+  'comment_reply' => l10n.ntCommentReply(
+    (n.payload['author_name'] as String?) ?? l10n.ntSomeone),
+  'chart_comment' => l10n.ntChartComment,
+  'comment_held' => l10n.ntCommentHeld,
+  'comment_removed' => l10n.ntCommentRemoved,
+  'comment_restored' => l10n.ntCommentRestored,
+  _ => l10n.ntGeneric,
+};
+      
       'comment_reply' => l10n.ntCommentReply(
           (n.payload['author_name'] as String?) ?? l10n.ntSomeone),
       'chart_comment' =>
