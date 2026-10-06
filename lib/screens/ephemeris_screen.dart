@@ -18,7 +18,6 @@ import '../core/astro/ephemeris_table.dart';
 import '../core/astro/models.dart';
 import '../core/theme/theme.dart';
 import '../data/settings_repository.dart';
-import '../modules/common.dart' show retroMark;
 import '../l10n/astro_l10n.dart';
 import '../services/current_location_service.dart';
 import '../services/place_lookup_service.dart';
@@ -35,31 +34,14 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
   late int _year;
   late int _month;
   EphemerisSystem _system = EphemerisSystem.nirayan;
-
-  /// Null until the user picks one — the app-wide default applies.
   int? _ayanamsaOverride;
-
-  // The ~250 sweph calls per month are a few milliseconds of FFI —
-  // fine synchronously (transit scans do far more) — but not free, so
-  // the last table is memoized against its inputs.
   EphemerisMonth? _table;
   (int, int, EphemerisSystem, int, double?, double?)? _tableKey;
-
-  /// Frozen-panes scaffolding: the pinned planet-header row and the
-  /// table body are two separate horizontal scroll views. The body is
-  /// the one the user drags; the header follows it via [_syncHeader]
-  /// (its own physics are disabled, so no feedback loop).
   final _hHead = ScrollController();
   final _hBody = ScrollController();
-
   static const double _dateColWidth = 52;
   static const double _cellWidth = 116;
   static const double _headerHeight = 30;
-
-  /// Place for the lagna column — the ascendant, unlike the grahas, is
-  /// place-dependent, so the column only appears once this resolves
-  /// (device location if known, else the app default; same concept as
-  /// Today/Muhurta).
   TodayPlace? _place;
 
   @override
@@ -82,12 +64,12 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
       context: context,
       builder: (_) => const _EphemerisPlacePickerDialog(),
     );
-    if (picked == null || !mounted) return;
+    if (picked == null ||!mounted) return;
     setState(() => _place = picked);
   }
 
   void _syncHeader() {
-    if (_hHead.hasClients && _hHead.offset != _hBody.offset) {
+    if (_hHead.hasClients && _hHead.offset!= _hBody.offset) {
       _hHead.jumpTo(_hBody.offset);
     }
   }
@@ -100,24 +82,20 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
     super.dispose();
   }
 
-  /// Fixed row heights keep the frozen date column and the scrolling
-  /// body aligned — they live in separate widgets, so intrinsic sizing
-  /// can't couple them. Scaled with the text scaler so accessibility
-  /// font sizes don't clip the two-line cells.
   double _rowHeight(EphemerisSystem system) {
     final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-    return (system == EphemerisSystem.nirayan ? 48.0 : 34.0) * scale;
+    return (system == EphemerisSystem.nirayan? 48.0 : 34.0) * scale;
   }
 
   int get _ayanamsaId =>
-      _ayanamsaOverride ??
-      ref.watch(defaultAyanamsaProvider).value ??
+      _ayanamsaOverride??
+      ref.watch(defaultAyanamsaProvider).value??
       Ayanamsa.lahiri.id;
 
   EphemerisMonth _tableFor(int ayanamsaId) {
     final key = (_year, _month, _system, ayanamsaId, _place?.latitude,
         _place?.longitude);
-    if (_tableKey != key) {
+    if (_tableKey!= key) {
       _table = computeEphemerisMonth(
         year: _year,
         month: _month,
@@ -139,10 +117,6 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
     });
   }
 
-  /// Direct month+year jump — chevrons alone would mean hundreds of
-  /// taps to reach an old year. Same named-month + numeric-year idiom
-  /// as [DateFieldsRow] (birth entry); year range is the bundled
-  /// Swiss Ephemeris files' 1800–2400 CE.
   Future<void> _pickMonth() async {
     final locale = Localizations.localeOf(context).toString();
     final monthFmt = DateFormat.MMMM(locale);
@@ -153,7 +127,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) {
           final year = int.tryParse(yearCtrl.text.trim());
-          final valid = year != null && year >= 1800 && year <= 2400;
+          final valid = year!= null && year >= 1800 && year <= 2400;
           return AlertDialog(
             title: Text(ctx.l10n.epGoToMonth),
             content: Row(
@@ -172,7 +146,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
                               overflow: TextOverflow.ellipsis),
                         ),
                     ],
-                    onChanged: (m) => month = m ?? month,
+                    onChanged: (m) => month = m?? month,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -197,7 +171,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
                   child: Text(ctx.l10n.cancel)),
               TextButton(
                 onPressed:
-                    valid ? () => Navigator.pop(ctx, (month, year)) : null,
+                    valid? () => Navigator.pop(ctx, (month, year)) : null,
                 child: Text(MaterialLocalizations.of(ctx).okButtonLabel),
               ),
             ],
@@ -206,7 +180,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
       ),
     );
     yearCtrl.dispose();
-    if (picked != null) {
+    if (picked!= null) {
       setState(() {
         _month = picked.$1;
         _year = picked.$2;
@@ -221,7 +195,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
     final table = _tableFor(ayanamsaId);
     final now = DateTime.now();
     final todayDay =
-        (now.year == _year && now.month == _month) ? now.day : null;
+        (now.year == _year && now.month == _month)? now.day : null;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.epTitle)),
@@ -239,9 +213,6 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
               ),
             ),
           ),
-          // The group scopes the pinned header to the table: it stays
-          // put while table rows scroll under it, then pushes off with
-          // the table (instead of hovering over the events footer).
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             sliver: SliverMainAxisGroup(
@@ -252,7 +223,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
                     height: _headerHeight,
                     child: _headerRow(l10n,
                         hasAsc: table.days.isNotEmpty &&
-                            table.days.first.ascendant != null),
+                            table.days.first.ascendant!= null),
                   ),
                 ),
                 SliverToBoxAdapter(child: _tableBody(l10n, table, todayDay)),
@@ -263,7 +234,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 40),
             sliver: SliverToBoxAdapter(
               child: table.events.isEmpty
-                  ? const SizedBox.shrink()
+                 ? const SizedBox.shrink()
                   : _eventsCard(l10n, table),
             ),
           ),
@@ -318,7 +289,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
                   icon: const Icon(Icons.today_outlined, size: 20),
                   tooltip: l10n.epBackToCurrentMonth,
                   onPressed: onCurrentMonth
-                      ? null
+                     ? null
                       : () => setState(() {
                             _year = now.year;
                             _month = now.month;
@@ -327,9 +298,6 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
               ],
             ),
             const SizedBox(height: 6),
-            // ChoiceChips, not SegmentedButton — the app-wide picker
-            // idiom (chart style, etc.); the chip theme carries the
-            // maroon selection color.
             Wrap(
               spacing: 8,
               children: [
@@ -342,15 +310,13 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
                     selected: _system == system,
                     labelStyle: TextStyle(
                         color: _system == system
-                            ? KJColors.paper
+                           ? KJColors.paper
                             : KJColors.ink),
                     onSelected: (_) => setState(() => _system = system),
                   ),
               ],
             ),
             const SizedBox(height: 4),
-            // The lagna column's place — everything else in the table
-            // is place-independent.
             Align(
               alignment: Alignment.centerLeft,
               child: InkWell(
@@ -367,7 +333,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
                       const SizedBox(width: 3),
                       Text(
                         '${l10n.labelAscendant} · '
-                        '${_place?.name.split(',').first ?? '…'}',
+                        '${_place?.name.split(',').first?? '…'}',
                         style:
                             KJTheme.mono(size: 11.5, color: KJColors.maroon),
                       ),
@@ -376,11 +342,9 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
                 ),
               ),
             ),
-            if (_system == EphemerisSystem.nirayan) ...[
+            if (_system == EphemerisSystem.nirayan)...[
               const SizedBox(height: 10),
               DropdownButtonFormField<int>(
-                // The app default resolves async after first build; the
-                // key remounts the field so initialValue takes effect.
                 key: ValueKey(ayanamsaId),
                 initialValue: ayanamsaId,
                 decoration: InputDecoration(
@@ -402,19 +366,15 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
   }
 
   Widget _infoLines(AppLocalizations l10n, EphemerisMonth table) {
-    // 00:00 UT is one global instant — 05:30 IST, the printed-Indian-
-    // ephemeris reference. Outside IST that label misleads, so the line
-    // switches to the user's own clock (date included: west of UTC the
-    // instant falls on the previous local day).
     final localFirst = DateTime.utc(table.year, table.month, 1).toLocal();
     final isIst =
         localFirst.timeZoneOffset == const Duration(hours: 5, minutes: 30);
     final lines = [
       isIst
-          ? l10n.epReferenceTime
+         ? l10n.epReferenceTime
           : l10n.epReferenceTimeLocal(
               DateFormat('d MMM HH:mm').format(localFirst)),
-      if (table.ayanamsaOnFirst != null)
+      if (table.ayanamsaOnFirst!= null)
         l10n.epAyanamsaOnFirst(
           Ayanamsa.byId(table.ayanamsaId).name,
           formatDegree(table.ayanamsaOnFirst!),
@@ -433,9 +393,6 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
     );
   }
 
-  /// The pinned header: a blank corner over the frozen date column,
-  /// then the lagna (when a place is set) and planet abbreviations in
-  /// a follower scroll view.
   Widget _headerRow(AppLocalizations l10n, {required bool hasAsc}) {
     return Container(
       height: _headerHeight,
@@ -482,7 +439,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
     final weekdayFmt = DateFormat('EE');
     BoxDecoration rowDeco(bool isToday) => BoxDecoration(
           color: isToday
-              ? Color.alphaBlend(
+             ? Color.alphaBlend(
                   KJColors.maroon.withValues(alpha: 0.07), KJColors.paper)
               : KJColors.paper,
           border: Border(top: BorderSide(color: KJColors.hairline)),
@@ -490,7 +447,6 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Frozen date column.
         Column(
           children: [
             for (final day in table.days)
@@ -507,10 +463,10 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
                         style: TextStyle(
                             fontSize: 12.5,
                             fontWeight: day.day == todayDay
-                                ? FontWeight.w700
+                               ? FontWeight.w700
                                 : FontWeight.w600,
                             color: day.day == todayDay
-                                ? KJColors.maroon
+                               ? KJColors.maroon
                                 : KJColors.ink)),
                     Text(
                         weekdayFmt.format(
@@ -536,13 +492,13 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
                           rowDeco(table.days[i].day == todayDay),
                       child: Row(
                         children: [
-                          if (table.days[i].ascendant != null)
+                          if (table.days[i].ascendant!= null)
                             _valueCell(
                               l10n,
                               longitude: table.days[i].ascendant!,
                               changed: i > 0 &&
                                   ZodiacSign.fromLongitude(table
-                                          .days[i - 1].ascendant!) !=
+                                         .days[i - 1].ascendant!)!=
                                       ZodiacSign.fromLongitude(
                                           table.days[i].ascendant!),
                               withNakshatra:
@@ -553,28 +509,15 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
                               l10n,
                               longitude:
                                   table.days[i].positions[planet]!.longitude,
-                              // ® is suppressed for the nodes — retro by
-                              // definition, and the true node's daily
-                              // wobble would flicker the mark on and off
-                              // — matching the painters, the OS widget,
-                              // and the PDF.
                               retro: table
-                                      .days[i].positions[planet]!.isRetrograde &&
-                                  planet != Planet.rahu &&
-                                  planet != Planet.ketu,
-                              // Ingress mark: the sign differs from
-                              // yesterday's row.
+                                     .days[i].positions[planet]!.isRetrograde &&
+                                  planet!= Planet.rahu &&
+                                  planet!= Planet.ketu,
                               changed: i > 0 &&
                                   table.days[i - 1].positions[planet]!
-                                          .sign !=
+                                         .sign!=
                                       table
-                                          .days[i].positions[planet]!.sign,
-                              // Every graha gets its nakshatra-pada line
-                              // (the star lord matters for all of them
-                              // in KP work) — but nirayan-only:
-                              // nakshatras are sidereal by definition,
-                              // so deriving one from a tropical
-                              // longitude would be astrologically wrong.
+                                         .days[i].positions[planet]!.sign,
                               withNakshatra:
                                   table.system == EphemerisSystem.nirayan,
                             ),
@@ -590,10 +533,6 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
     );
   }
 
-  /// One table cell — a graha's or the lagna's longitude. Signs-passed
-  /// notation of the printed ephemerides: 3ˢ14°33'52" = three full
-  /// signs traversed + 14°33'52" into the fourth (Cancer). The sign is
-  /// implicit in the count, which frees room for seconds.
   Widget _valueCell(AppLocalizations l10n,
       {required double longitude,
       bool retro = false,
@@ -602,7 +541,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
     final signsPassed = longitude ~/ 30;
     final base = KJTheme.mono(
       size: 11.5,
-      color: changed ? KJColors.maroon : null,
+      color: changed? KJColors.maroon : null,
     );
     return SizedBox(
       width: _cellWidth,
@@ -617,12 +556,9 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
                 TextSpan(
                   text: '$signsPassedˢ${formatDegree(longitude)}',
                   style: changed
-                      ? base.copyWith(fontWeight: FontWeight.w700)
+                     ? base.copyWith(fontWeight: FontWeight.w700)
                       : base,
                 ),
-                // Shared app-wide marker: 1.5× the digits — the ®
-                // glyph is designed superscript-small, and at text
-                // size it is illegible (device QA).
                 if (retro) retroMark(11.5),
               ]),
             ),
@@ -637,14 +573,16 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
       ),
     );
   }
-    Widget _headCell(String text, {Color? color}) {
+
+  Widget _headCell(String text, {Color? color}) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Text(
-        text, 
+        text,
         style: TextStyle(
-          fontWeight: FontWeight.bold, 
-          color: color ?? Colors.black87,
+          fontWeight: FontWeight.bold,
+          color: color?? Colors.black87,
+          fontSize: 12.5,
         ),
       ),
     );
@@ -653,25 +591,19 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
   InlineSpan retroMark(double size) {
     return TextSpan(
       text: ' ℞',
-      style: TextStyle(fontSize: size, color: Colors.red, fontWeight: FontWeight.bold),
-    );
-  }
-
-  Widget retroMarkWidget(double size) {
-    return Text(
-      ' ℞',
-      style: TextStyle(fontSize: size, color: Colors.red, fontWeight: FontWeight.bold),
+      style: TextStyle(
+          fontSize: size, color: Colors.red, fontWeight: FontWeight.bold),
     );
   }
 
   String label(dynamic e) {
     try {
       final v = (e as dynamic).label;
-      if (v != null) return v.toString();
+      if (v!= null) return v.toString();
     } catch (_) {}
     try {
       final v = (e as dynamic).name;
-      if (v != null) return v.toString();
+      if (v!= null) return v.toString();
     } catch (_) {}
     return e.toString();
   }
@@ -683,16 +615,164 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Events", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text("Events",
+                style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            ...table.events.map((e) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Text(label(e)),
-            )),
+           ...table.events.map((e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Text(label(e)),
+                )),
           ],
         ),
       ),
     );
   }
 }
-    
+
+class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double height;
+  final Widget child;
+  _PinnedHeaderDelegate({required this.height, required this.child});
+  @override
+  double get minExtent => height;
+  @override
+  double get maxExtent => height;
+  @override
+  Widget build(
+          BuildContext context, double shrinkOffset, bool overlapsContent) =>
+      SizedBox.expand(child: child);
+  @override
+  bool shouldRebuild(covariant _PinnedHeaderDelegate oldDelegate) =>
+      oldDelegate.height!= height || oldDelegate.child!= child;
+}
+
+class _EphemerisPlacePickerDialog extends ConsumerStatefulWidget {
+  const _EphemerisPlacePickerDialog();
+  @override
+  ConsumerState<_EphemerisPlacePickerDialog> createState() =>
+      _EphemerisPlacePickerDialogState();
+}
+
+class _EphemerisPlacePickerDialogState
+    extends ConsumerState<_EphemerisPlacePickerDialog> {
+  final _ctrl = TextEditingController();
+  List<PlacePrediction> _results = [];
+  bool _loading = false;
+
+  Future<void> _search(String q) async {
+    if (q.trim().length < 2) {
+      setState(() => _results = []);
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      final svc = ref.read(placeLookupServiceProvider);
+      final r = await svc.search(q);
+      if (mounted) setState(() => _results = r);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return AlertDialog(
+      title: Text(l10n.pickPlace),
+      content: SizedBox(
+        width: 360,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _ctrl,
+              decoration: InputDecoration(
+                hintText: l10n.searchPlaceHint,
+                suffixIcon: _loading
+                   ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: Padding(
+                          padding: EdgeInsets.all(12),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: () => _search(_ctrl.text),
+                      ),
+              ),
+              onSubmitted: _search,
+              onChanged: (v) {
+                if (v.length >= 3) _search(v);
+              },
+            ),
+            const SizedBox(height: 12),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _results.length,
+                itemBuilder: (c, i) {
+                  final p = _results[i];
+                  return ListTile(
+                    title: Text(p.name),
+                    subtitle: Text(p.description?? '',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    onTap: () async {
+                      final details =
+                          await ref.read(placeLookupServiceProvider).details(p);
+                      if (!context.mounted) return;
+                      if (details!= null) {
+                        Navigator.pop(
+                            context,
+                            TodayPlace(
+                                name: details.name,
+                                latitude: details.lat,
+                                longitude: details.lng));
+                      }
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel)),
+      ],
+    );
+  }
+}
+
+String formatDegree(double deg) {
+  final d = deg % 30;
+  final dm = d.floor();
+  final m = ((d - dm) * 60).floor();
+  final s = (((d - dm) * 60 - m) * 60).round();
+  return '${dm}°${m.toString().padLeft(2, '0')}\'${s.toString().padLeft(2, '0')}"';
+}
+
+Color planetInk(Planet p) {
+  switch (p) {
+    case Planet.sun:
+      return const Color(0xFFB45309);
+    case Planet.moon:
+      return const Color(0xFF475569);
+    case Planet.mars:
+      return const Color(0xFFDC2626);
+    case Planet.mercury:
+      return const Color(0xFF059669);
+    case Planet.jupiter:
+      return const Color(0xFF7C3AED);
+    case Planet.venus:
+      return const Color(0xFFDB2777);
+    case Planet.saturn:
+      return const Color(0xFF1E293B);
+    case Planet.rahu:
+    case Planet.ketu:
+      return const Color(0xFF57534E);
+  }
+}
