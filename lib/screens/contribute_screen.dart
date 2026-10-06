@@ -315,3 +315,40 @@ class _AnonRow extends StatelessWidget {
         ),
       );
 }
+// --- Fix for missing LifeEventInput ---
+class LifeEventInput {
+  final String tag;
+  final DateTime? eventDate;
+  final bool isHealthRelated;
+  final String note;
+  LifeEventInput({
+    required this.tag,
+    this.eventDate,
+    required this.isHealthRelated,
+    required this.note,
+  });
+}
+
+List<LifeEventInput> lifeEventsFromStored(dynamic stored) {
+  if (stored == null) return [];
+  try {
+    final list = stored as List;
+    return list.map((item) {
+      if (item is LifeEventInput) return item;
+      try {
+        final dyn = item as dynamic;
+        return LifeEventInput(
+          tag: dyn.tag?.toString() ?? item.toString(),
+          eventDate: dyn.eventDate as DateTime?,
+          isHealthRelated: dyn.isHealthRelated as bool? ?? false,
+          note: dyn.note?.toString() ?? '',
+        );
+      } catch (_) {
+        return LifeEventInput(
+            tag: item.toString(), isHealthRelated: false, note: '');
+      }
+    }).toList();
+  } catch (_) {
+    return [];
+  }
+}
