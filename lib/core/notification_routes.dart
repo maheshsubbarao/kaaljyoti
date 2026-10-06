@@ -1,9 +1,3 @@
-/// Single source of truth mapping a notification (type + payload keys)
-/// to the screen it should open — used by BOTH the in-app bell
-/// (notifications_screen.dart) and push-notification taps
-/// (push_service.dart), so the two entry points can never route
-/// differently. The send-notification edge function mirrors these keys
-/// into the FCM data payload (type / mk_code / request_id).
 library;
 
 String? notificationRoute(
@@ -27,7 +21,7 @@ String? notificationRoute(
     'comment_held',
     'comment_removed',
     'comment_restored',
-  return discussionTypes.contains(type)
-  ? '/dashboard'
-: '/dashboard';
+  };
+
+  return discussionTypes.contains(type) ? '/dashboard' : '/dashboard';
 }
