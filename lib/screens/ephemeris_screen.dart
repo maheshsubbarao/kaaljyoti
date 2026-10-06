@@ -637,18 +637,30 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
       ),
     );
   }
-  
-    Widget retroMark(double size) {
-    return Text(
-      ' ℞',
+    Widget _headCell(String text, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Text(
+        text, 
+        style: TextStyle(
+          fontWeight: FontWeight.bold, 
+          color: color ?? Colors.black87,
+        ),
+      ),
+    );
+  }
+
+  InlineSpan retroMark(double size) {
+    return TextSpan(
+      text: ' ℞',
       style: TextStyle(fontSize: size, color: Colors.red, fontWeight: FontWeight.bold),
     );
   }
 
-  Widget _headCell(String text) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
+  Widget retroMarkWidget(double size) {
+    return Text(
+      ' ℞',
+      style: TextStyle(fontSize: size, color: Colors.red, fontWeight: FontWeight.bold),
     );
   }
 
@@ -683,3 +695,4 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
     );
   }
 }
+    
