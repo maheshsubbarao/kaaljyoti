@@ -246,30 +246,67 @@ String templateDescription(AppLocalizations l10n, String key) => switch (key) { 
 String sbcCellLabel(AppLocalizations l10n, SbcCell cell) => switch (cell.type) { SbcCellType.nakshatra => nakshatra28AbbrLabel(l10n, cell.nak28!), SbcCellType.rashi => cell.rashi!.abbrLabel(l10n), _ => cell.label, };
 String moduleCategoryLabel(AppLocalizations l10n, String category) => switch (category) { 'Today' => l10n.mcToday, 'Chart & Grahas' => l10n.mcChartGrahas, 'Divisional Charts' => l10n.mcDivisional, 'Timing & Dashas' => l10n.mcTiming, 'Jaimini' => l10n.mcJaimini, 'Strength & Doshas' => l10n.mcStrength, 'Chakra' => l10n.mcChakra, 'KP (Krishnamurti)' => l10n.mcKp, 'Varshphal' => l10n.mcVarshphal, _ => category, };
 
-// FIXED PART - THIS WAS CORRUPTED BEFORE
-String notificationTypeLabel(AppLocalizations l10n, String type, dynamic n) => switch (type) {
-      'request_match_new' => l10n.ntRequestMatchNew,
-      'your_chart_matched' => l10n.ntYourChartMatched,
-      'request_approved' => l10n.ntRequestApproved,
-      'request_rejected' => l10n.ntRequestRejected,
-      'report_actioned' => l10n.ntReportActioned,
-      'report_dismissed' => l10n.ntReportDismissed,
-      'comment_reply' => l10n.ntCommentReply((n.payload['author_name'] as String?)?? l10n.ntSomeone),
-      'chart_comment' => l10n.ntChartComment,
-      'comment_held' => l10n.ntCommentHeld,
-      'comment_removed' => l10n.ntCommentRemoved,
-      'comment_restored' => l10n.ntCommentRestored,
-      _ => l10n.ntGeneric,
-    };
+String notificationTypeLabel(AppLocalizations l10n, String type, dynamic n) {
+  String authorFallback = l10n.ntSomeone;
+  try {
+    final dynamic payload = (n as dynamic).payload;
+    if (payload is Map) {
+      final a = payload['author_name'];
+      if (a is String && a.isNotEmpty) authorFallback = a;
+    }
+  } catch (_) {}
+  switch (type) {
+    case 'request_match_new':
+      return l10n.ntRequestMatchNew;
+    case 'your_chart_matched':
+      return l10n.ntYourChartMatched;
+    case 'request_approved':
+      return l10n.ntRequestApproved;
+    case 'request_rejected':
+      return l10n.ntRequestRejected;
+    case 'report_actioned':
+      return l10n.ntReportActioned;
+    case 'report_dismissed':
+      return l10n.ntReportDismissed;
+    case 'comment_reply':
+      return l10n.ntCommentReply(authorFallback);
+    case 'chart_comment':
+      return l10n.ntChartComment;
+    case 'comment_held':
+      return l10n.ntCommentHeld;
+    case 'comment_removed':
+      return l10n.ntCommentRemoved;
+    case 'comment_restored':
+      return l10n.ntCommentRestored;
+    default:
+      return l10n.ntGeneric;
+  }
+}
 
-String commentPlaceholder(AppLocalizations l10n, String status) => switch (status) {
-      'deleted' => l10n.dsPlaceholderDeleted,
-      'removed' => l10n.dsPlaceholderRemoved,
-      'held' => l10n.dsPlaceholderHeld,
-      _ => '',
-    };
+String commentPlaceholder(AppLocalizations l10n, String status) {
+  switch (status) {
+    case 'deleted':
+      return l10n.dsPlaceholderDeleted;
+    case 'removed':
+      return l10n.dsPlaceholderRemoved;
+    case 'held':
+      return l10n.dsPlaceholderHeld;
+    default:
+      return '';
+  }
+}
 
-String commentAuthorLabel(AppLocalizations l10n, dynamic c) => c.authorName.isNotEmpty? c.authorName : (c.authorId == null? l10n.dsAuthorDeleted : l10n.dsAuthorAnonymous);
+String commentAuthorLabel(AppLocalizations l10n, dynamic c) {
+  try {
+    final name = (c as dynamic).authorName as String?;
+    if (name!= null && name.isNotEmpty) return name;
+    final id = (c as dynamic).authorId;
+    if (id == null) return l10n.dsAuthorDeleted;
+    return l10n.dsAuthorAnonymous;
+  } catch (_) {
+    return l10n.dsAuthorAnonymous;
+  }
+}
 
 String sahamLabel(AppLocalizations l10n, String key) => switch (key) {
       'punya' => l10n.sahamPunya, 'guru' => l10n.sahamGuru, 'vidya' => l10n.sahamVidya, 'yasha' => l10n.sahamYasha, 'mitra' => l10n.sahamMitra, 'mahatmya' => l10n.sahamMahatmya, 'asha' => l10n.sahamAsha, 'samartha' => l10n.sahamSamartha, 'bhratri' => l10n.sahamBhratri, 'gaurava' => l10n.sahamGaurava, 'pitri' => l10n.sahamPitri, 'raja' => l10n.sahamRaja, 'matri' => l10n.sahamMatri, 'putra' => l10n.sahamPutra, 'jeeva' => l10n.sahamJeeva, 'roga' => l10n.sahamRoga, 'karma' => l10n.sahamKarma, 'manmatha' => l10n.sahamManmatha, 'kali' => l10n.sahamKali, 'kshama' => l10n.sahamKshama, 'shastra' => l10n.sahamShastra, 'bandhu' => l10n.sahamBandhu, 'mrityu' => l10n.sahamMrityu, 'deshantara' => l10n.sahamDeshantara, 'artha' => l10n.sahamArtha, 'paradara' => l10n.sahamParadara, 'anyakarma' => l10n.sahamAnyakarma, 'vanika' => l10n.sahamVanika, 'karyasiddhi' => l10n.sahamKaryasiddhi, 'vivaha' => l10n.sahamVivaha, 'prasava' => l10n.sahamPrasava, 'santaapa' => l10n.sahamSantaapa, 'shraddha' => l10n.sahamShraddha, 'preeti' => l10n.sahamPreeti, 'jadya' => l10n.sahamJadya, 'vyapara' => l10n.sahamVyapara, 'paneeyapaata' => l10n.sahamPaneeyapaata, 'shatru' => l10n.sahamShatru, 'jalapatha' => l10n.sahamJalapatha, 'bandhana' => l10n.sahamBandhana, 'labha' => l10n.sahamLabha, _ => key,

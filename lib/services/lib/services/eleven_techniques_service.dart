@@ -16,8 +16,9 @@ class ElevenTechniquesService {
         int signDiff = ((np~/30) - (tp~/30)) % 12;
 
         String ang = '';
-        if (signDiff==0) ang='0';
-        else if (signDiff==6) ang='180';
+        if (signDiff==0) {
+          ang='0';
+        } else if (signDiff==6) ang='180';
         else if (signDiff==2 && tPos==SA) ang='60';
         else if (signDiff==9 && tPos==SA) ang='270';
         else if (signDiff==3 && tPos==MA) ang='90';

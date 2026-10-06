@@ -318,7 +318,7 @@ class _ScoreDial extends StatelessWidget {
                 ),
               ),
               Text(
-                '${result.total.toStringAsFixed(1)}',
+                result.total.toStringAsFixed(1),
                 style: KJTheme.serif(size: 20, color: color),
               ),
             ],

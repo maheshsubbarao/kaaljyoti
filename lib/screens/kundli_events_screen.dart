@@ -352,7 +352,7 @@ class _EventEditorState extends ConsumerState<_EventEditor> {
             // Compact dropdown rather than a 12-chip Wrap — mobile screens are
             // small, and 'Other' covers anything outside the curated set.
             DropdownButtonFormField<EventCategory>(
-              value: _category,
+              initialValue: _category,
               isExpanded: true,
               decoration: InputDecoration(labelText: context.l10n.evCategory),
               items: [

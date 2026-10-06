@@ -26,10 +26,10 @@ Future<int> _litPixels(WidgetTester tester, Key boundaryKey) async {
 void main() {
   const boundaryKey = ValueKey('boundary');
 
-  Widget harness() => MaterialApp(
+  Widget harness() => const MaterialApp(
         home: RepaintBoundary(
           key: boundaryKey,
-          child: const DemoTouchOverlay(
+          child: DemoTouchOverlay(
             child: ColoredBox(color: Colors.black, child: SizedBox.expand()),
           ),
         ),

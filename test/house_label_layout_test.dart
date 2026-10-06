@@ -15,10 +15,10 @@ void main() {
 
   // The reference chart's 3rd house: Me before madhya, Ma/Su/Ve after.
   List<PlanetToken> tokens() => [
-        PlanetToken(planet: Planet.mercury, degreeInSign: 7.19),
-        PlanetToken(planet: Planet.mars, degreeInSign: 23.95),
-        PlanetToken(planet: Planet.sun, degreeInSign: 25.32),
-        PlanetToken(planet: Planet.venus, degreeInSign: 25.68),
+        const PlanetToken(planet: Planet.mercury, degreeInSign: 7.19),
+        const PlanetToken(planet: Planet.mars, degreeInSign: 23.95),
+        const PlanetToken(planet: Planet.sun, degreeInSign: 25.32),
+        const PlanetToken(planet: Planet.venus, degreeInSign: 25.68),
       ];
 
   List<String> rowTexts(HouseLabelLayout layout) =>
@@ -61,7 +61,7 @@ void main() {
     final layout = HouseLabelLayout(
       l10n: l10n,
       tokens: [
-        PlanetToken(planet: Planet.mars, degreeInSign: 23.95, signTag: '10ˢ'),
+        const PlanetToken(planet: Planet.mars, degreeInSign: 23.95, signTag: '10ˢ'),
       ],
       maxWidth: 500,
       maxHeight: 500,
@@ -139,7 +139,7 @@ void main() {
     final atFloor = HouseLabelLayout(
       l10n: l10n,
       tokens: [
-        PlanetToken(
+        const PlanetToken(
             planet: Planet.mercury, degreeInSign: 7.19, signTag: '11ˢ'),
       ],
       maxWidth: 1000,

@@ -45,7 +45,7 @@ class _AstroEventsScreenState extends State<AstroEventsScreen> with SingleTicker
           'tech': 'AD',
         });
       }
-      cur = cur.add(Duration(days: 1));
+      cur = cur.add(const Duration(days: 1));
     }
     setState(() => events = temp);
   }
@@ -72,7 +72,7 @@ class _AstroEventsScreenState extends State<AstroEventsScreen> with SingleTicker
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Astro Events - Build #19'),
+        title: const Text('Astro Events - Build #19'),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -81,7 +81,7 @@ class _AstroEventsScreenState extends State<AstroEventsScreen> with SingleTicker
             _generateEvents();
           },
           tabs: [
-            Tab(text: 'ALL'),
+            const Tab(text: 'ALL'),
             ...List.generate(12, (i) => Tab(text: '${i+1}')),
           ],
         ),
@@ -89,22 +89,22 @@ class _AstroEventsScreenState extends State<AstroEventsScreen> with SingleTicker
       body: Column(
         children: [
           Padding(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             child: OutlinedButton.icon(
-              icon: Icon(Icons.calendar_today),
-              label: Text("${fromDate.day.toString().padLeft(2,'0')}-${fromDate.month.toString().padLeft(2,'0')}-${fromDate.year} to ${toDate.day.toString().padLeft(2,'0')}-${toDate.month.toString().padLeft(2,'0')}-${toDate.year}", style: TextStyle(fontFamily: 'monospace')),
+              icon: const Icon(Icons.calendar_today),
+              label: Text("${fromDate.day.toString().padLeft(2,'0')}-${fromDate.month.toString().padLeft(2,'0')}-${fromDate.year} to ${toDate.day.toString().padLeft(2,'0')}-${toDate.month.toString().padLeft(2,'0')}-${toDate.year}", style: const TextStyle(fontFamily: 'monospace')),
               onPressed: _pickRange,
             ),
           ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: ['ALL','MD','AD','BNN','D9 TOE','SJMH 9','AIO 8','Transit'].map((t) {
                 return Padding(
-                  padding: EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.only(right: 6),
                   child: ChoiceChip(
-                    label: Text(t, style: TextStyle(fontSize: 11)),
+                    label: Text(t, style: const TextStyle(fontSize: 11)),
                     selected: selectedTech == t,
                     onSelected: (v) => setState(() => selectedTech = t),
                   ),
@@ -112,7 +112,7 @@ class _AstroEventsScreenState extends State<AstroEventsScreen> with SingleTicker
               }).toList(),
             ),
           ),
-          Divider(),
+          const Divider(),
           Expanded(
             child: ListView.builder(
               itemCount: filtered.length,
@@ -120,19 +120,19 @@ class _AstroEventsScreenState extends State<AstroEventsScreen> with SingleTicker
                 final ev = filtered[idx];
                 return ListTile(
                   leading: Icon(Icons.event, color: ev['tech'] == 'MD' ? Colors.orange : Colors.blue),
-                  title: Text("${ev['date']}  ${ev['code']}", style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                  title: Text("${ev['date']}  ${ev['code']}", style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
                   subtitle: Text("${ev['tech']} • House $selectedHouse"),
                 );
               },
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                icon: Icon(Icons.dashboard),
-                label: Text('View 12 Houses Dashboard'),
+                icon: const Icon(Icons.dashboard),
+                label: const Text('View 12 Houses Dashboard'),
                 onPressed: () {
                   // TODO: 12 houses dashboard
                 },
