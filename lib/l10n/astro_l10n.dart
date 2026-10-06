@@ -245,7 +245,6 @@ String templateName(AppLocalizations l10n, String key) => switch (key) { 'blank'
 String templateDescription(AppLocalizations l10n, String key) => switch (key) { 'blank' => l10n.vtBlankDesc, 'overview' => l10n.vtOverviewDesc, 'divisional' => l10n.vtDivisionalDesc, 'dasha' => l10n.vtDashaDesc, 'jaimini' => l10n.vtJaiminiDesc, 'kp' => l10n.vtKpDesc, 'varshphal' => l10n.vtVarshphalDesc, 'strength' => l10n.vtStrengthDesc, 'chakras' => l10n.vtChakrasDesc, _ => '', };
 String sbcCellLabel(AppLocalizations l10n, SbcCell cell) => switch (cell.type) { SbcCellType.nakshatra => nakshatra28AbbrLabel(l10n, cell.nak28!), SbcCellType.rashi => cell.rashi!.abbrLabel(l10n), _ => cell.label, };
 String moduleCategoryLabel(AppLocalizations l10n, String category) => switch (category) { 'Today' => l10n.mcToday, 'Chart & Grahas' => l10n.mcChartGrahas, 'Divisional Charts' => l10n.mcDivisional, 'Timing & Dashas' => l10n.mcTiming, 'Jaimini' => l10n.mcJaimini, 'Strength & Doshas' => l10n.mcStrength, 'Chakra' => l10n.mcChakra, 'KP (Krishnamurti)' => l10n.mcKp, 'Varshphal' => l10n.mcVarshphal, _ => category, };
-
 String notificationTypeLabel(AppLocalizations l10n, String type, dynamic n) {
   String authorFallback = l10n.ntSomeone;
   try {
@@ -269,9 +268,19 @@ String notificationTypeLabel(AppLocalizations l10n, String type, dynamic n) {
     case 'report_dismissed':
       return l10n.ntReportDismissed;
     case 'comment_reply':
-      return l10n.ntCommentReply(authorFallback);
+      return (l10n as dynamic).ntCommentReply(authorFallback) as String;
     case 'chart_comment':
-      return l10n.ntChartComment;
+      try {
+        final v = (l10n as dynamic).ntChartComment;
+        if (v is String) return v;
+        return Function.apply(v, [authorFallback]) as String;
+      } catch (_) {
+        try {
+          return Function.apply((l10n as dynamic).ntChartComment, []) as String;
+        } catch (_) {
+          return 'New comment';
+        }
+      }
     case 'comment_held':
       return l10n.ntCommentHeld;
     case 'comment_removed':
@@ -282,7 +291,6 @@ String notificationTypeLabel(AppLocalizations l10n, String type, dynamic n) {
       return l10n.ntGeneric;
   }
 }
-
 String commentPlaceholder(AppLocalizations l10n, String status) {
   switch (status) {
     case 'deleted':
