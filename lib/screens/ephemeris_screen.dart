@@ -299,7 +299,7 @@ class _EphemerisPlacePickerDialogState extends ConsumerState<_EphemerisPlacePick
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return AlertDialog(
-      title: Text(l10n.pickPlace),
+      title: const Text('Pick Place'),
       content: SizedBox(width: 360, child: TextField(controller: _ctrl, decoration: const InputDecoration(hintText: 'Search place'))),
       actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
     );
