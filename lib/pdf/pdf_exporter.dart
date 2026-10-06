@@ -186,16 +186,16 @@ class PdfExporter {
                     // Practitioner branding replaces the default
                     // copyright line, never stacks with it.
                     options.brandingFooter ?? '$kCopyrightLine · $kWebsite',
-                    style: pw.TextStyle(fontSize: 8, color: pdfInkSoft),
+                    style: pw.TextStyle(fontSize: 8, color:  PdfColors.grey600),
                   ),
                   pw.Text('${context.pageNumber} / ${context.pagesCount}',
-                      style: pw.TextStyle(fontSize: 8, color: pdfInkSoft)),
+                     style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
                 ],
               ),
               if (context.pageNumber == context.pagesCount)
                 pw.Padding(
                   padding: const pw.EdgeInsets.only(top: 3),
-                  child: kjPdfCredit(ctx.l10n),
+                  child: pw.Text('KaalJyoti', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
                 ),
             ],
           ),
