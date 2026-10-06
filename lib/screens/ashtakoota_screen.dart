@@ -270,13 +270,13 @@ class _MatchBody extends ConsumerWidget {
               padding: const pw.EdgeInsets.only(top: 4),
               child: pw.Text(
                 l10n.akMangalMismatch,
-                style: pw.TextStyle(fontSize: 9, color: pdfInkSoft),
+                style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
               ),
             ),
           pw.SizedBox(height: 8),
           pw.Text(
             l10n.akPdfDisclaimer,
-            style: pw.TextStyle(fontSize: 7.5, color: pdfInkSoft),
+            style: pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700),
           ),
         ],
       ),
