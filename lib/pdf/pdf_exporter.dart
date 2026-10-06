@@ -54,6 +54,10 @@ String pdfScriptSample(ModuleContext ctx, PdfExportOptions options) => [
     ].join();
 
 class PdfExporter {
+    final pdfInkSoft = PdfColor.fromInt(0xFF757575);
+  final pdfMaroon = PdfColor.fromInt(0xFF7B1F1F);
+  final pdfInk = PdfColor.fromInt(0xFF000000);
+  final pdfInkSoft2 = PdfColors.grey600;
   Future<void> exportAndShare(
     ModuleContext ctx,
     PdfExportOptions options,
