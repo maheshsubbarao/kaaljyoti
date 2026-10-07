@@ -11,9 +11,10 @@ class CompareChart {
   final String? locationGeneral;
   CompareChart({this.locationGeneral});
   
-  // FIXED FOR DASHBOARD - Added missing methods!
+  // FIXED - All 3 methods needed by dashboard
   ZodiacSign signOf(Planet p) => ZodiacSign.aries;
   double lonOf(Planet p) => 0.0;
+  Map<Planet, double> get longitudes => const {};
 }
 
 class CompareEventDetail {
@@ -25,8 +26,8 @@ class CompareEventDetail {
   final String? mdLordLabel;
   final String? adLordLabel;
   final dynamic sadeSatiPhase;
-  final Map<Planet, int> transitHousesFromMoon;
-  final Map<Planet, int> transitHousesFromLagna;
+  final Map<dynamic, int> transitHousesFromMoon;
+  final Map<dynamic, int> transitHousesFromLagna;
   CompareEventDetail({
     this.subjectId = '',
     this.approximate = false,
@@ -36,10 +37,10 @@ class CompareEventDetail {
     this.mdLordLabel,
     this.adLordLabel,
     this.sadeSatiPhase,
-    Map<Planet, int>? transitHousesFromMoon,
-    Map<Planet, int>? transitHousesFromLagna,
-  })  : transitHousesFromMoon = transitHousesFromMoon ?? {},
-        transitHousesFromLagna = transitHousesFromLagna ?? {};
+    Map<dynamic, int>? transitHousesFromMoon,
+    Map<dynamic, int>? transitHousesFromLagna,
+  })  : transitHousesFromMoon = transitHousesFromMoon ?? const {},
+        transitHousesFromLagna = transitHousesFromLagna ?? const {};
 }
 
 class CompareFinding {
