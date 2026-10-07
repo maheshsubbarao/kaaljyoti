@@ -88,10 +88,10 @@ const List<AstroModule> _allModules = [
   D9TechniqueModule(),
   SJMHModule(),
   AIOModule(),
-  BNNModule(),
-  SPModule(),
-  SATechniqueModule(),
-  PDTechniqueModule(),
+  // BNNModule(),
+  // SPModule(),
+  // SATechniqueModule(),
+  // PDTechniqueModule(),
 ];
 
 final Map<String, AstroModule> moduleRegistry = {
