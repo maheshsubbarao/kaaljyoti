@@ -1,0 +1,325 @@
+/// Ephemeris — a standalone reference section (menu entry): daily graha
+/// longitudes for a whole month, in nirayan (any ayanamsa) or sayan
+/// (tropical) values, with day-accurate ingress/station notes. Pure
+/// tabulated data for practitioners who want to check the numbers
+/// themselves — kundli-independent, so it lives beside Muhurta rather
+/// than inside any chart.
+library;
+
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+import '../core/astro/ayanamsa.dart';
+import '../core/astro/ephemeris_table.dart';
+import '../core/astro/models.dart';
+import '../core/theme/theme.dart';
+import '../data/settings_repository.dart';
+import '../l10n/astro_l10n.dart';
+import '../services/current_location_service.dart';
+import '../state/providers.dart';
+
+class EphemerisScreen extends ConsumerStatefulWidget {
+  const EphemerisScreen({super.key});
+  @override
+  ConsumerState<EphemerisScreen> createState() => _EphemerisScreenState();
+}
+
+class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
+  late int _year;
+  late int _month;
+  EphemerisSystem _system = EphemerisSystem.nirayan;
+  int? _ayanamsaOverride;
+  EphemerisMonth? _table;
+  (int, int, EphemerisSystem, int, double?, double?)? _tableKey;
+  final _hHead = ScrollController();
+  final _hBody = ScrollController();
+  static const double _dateColWidth = 52;
+  static const double _cellWidth = 116;
+  static const double _headerHeight = 30;
+  TodayPlace? _place;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _year = now.year;
+    _month = now.month;
+    _hBody.addListener(_syncHeader);
+    _loadPlace();
+  }
+
+  Future<void> _loadPlace() async {
+    final place = await ref.read(settingsRepoProvider).todayPlace();
+    if (mounted) setState(() => _place = place);
+  }
+
+  Future<void> _pickPlace() async {
+    final picked = await showDialog<TodayPlace>(
+      context: context,
+      builder: (_) => const _EphemerisPlacePickerDialog(),
+    );
+    if (picked == null ||!mounted) return;
+    setState(() => _place = picked);
+  }
+
+  void _syncHeader() {
+    if (_hHead.hasClients && _hHead.offset!= _hBody.offset) {
+      _hHead.jumpTo(_hBody.offset);
+    }
+  }
+
+  @override
+  void dispose() {
+    _hBody.removeListener(_syncHeader);
+    _hHead.dispose();
+    _hBody.dispose();
+    super.dispose();
+  }
+
+  double _rowHeight(EphemerisSystem system) {
+    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+    return (system == EphemerisSystem.nirayan? 48.0 : 34.0) * scale;
+  }
+
+  int get _ayanamsaId =>
+      _ayanamsaOverride??
+      ref.watch(defaultAyanamsaProvider).value??
+      Ayanamsa.lahiri.id;
+
+  EphemerisMonth _tableFor(int ayanamsaId) {
+    final key = (_year, _month, _system, ayanamsaId, _place?.latitude, _place?.longitude);
+    if (_tableKey!= key) {
+      _table = computeEphemerisMonth(
+        year: _year,
+        month: _month,
+        system: _system,
+        ayanamsaId: ayanamsaId,
+        latitude: _place?.latitude,
+        longitude: _place?.longitude,
+      );
+      _tableKey = key;
+    }
+    return _table!;
+  }
+
+  void _step(int months) {
+    setState(() {
+      final m = DateTime(_year, _month + months);
+      _year = m.year;
+      _month = m.month;
+    });
+  }
+
+  Future<void> _pickMonth() async {
+    final locale = Localizations.localeOf(context).toString();
+    final monthFmt = DateFormat.MMMM(locale);
+    var month = _month;
+    final yearCtrl = TextEditingController(text: '$_year');
+    final picked = await showDialog<(int, int)>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          final year = int.tryParse(yearCtrl.text.trim());
+          final valid = year!= null && year >= 1800 && year <= 2400;
+          return AlertDialog(
+            title: Text(ctx.l10n.epGoToMonth),
+            content: Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    initialValue: month,
+                    decoration: InputDecoration(labelText: ctx.l10n.dfMonth),
+                    isExpanded: true,
+                    items: [
+                      for (var m = 1; m <= 12; m++)
+                        DropdownMenuItem(value: m, child: Text(monthFmt.format(DateTime(2000, m)), overflow: TextOverflow.ellipsis)),
+                    ],
+                    onChanged: (m) => month = m?? month,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 84,
+                  child: TextField(
+                    controller: yearCtrl,
+                    decoration: InputDecoration(labelText: ctx.l10n.dfYear),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(4)],
+                    onChanged: (_) => setLocal(() {}),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.l10n.cancel)),
+              TextButton(
+                onPressed: valid? () => Navigator.pop(ctx, (month, year)) : null,
+                child: Text(MaterialLocalizations.of(ctx).okButtonLabel),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    yearCtrl.dispose();
+    if (picked!= null) {
+      setState(() {
+        _month = picked.$1;
+        _year = picked.$2;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final ayanamsaId = _ayanamsaId;
+    final table = _tableFor(ayanamsaId);
+    final now = DateTime.now();
+    final todayDay = (now.year == _year && now.month == _month)? now.day : null;
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.epTitle)),
+      body: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            sliver: SliverToBoxAdapter(child: Column(children: [_controls(l10n, ayanamsaId), const SizedBox(height: 4), _infoLines(l10n, table)])),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            sliver: SliverMainAxisGroup(slivers: [
+              SliverPersistentHeader(pinned: true, delegate: _PinnedHeaderDelegate(height: _headerHeight, child: _headerRow(l10n, hasAsc: table.days.isNotEmpty && table.days.first.ascendant!= null))),
+              SliverToBoxAdapter(child: _tableBody(l10n, table, todayDay)),
+            ]),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 40),
+            sliver: SliverToBoxAdapter(child: table.events.isEmpty? const SizedBox.shrink() : _eventsCard(l10n, table)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _controls(AppLocalizations l10n, int ayanamsaId) {
+    final monthLabel = DateFormat('MMMM yyyy').format(DateTime(_year, _month));
+    final now = DateTime.now();
+    final onCurrentMonth = _year == now.year && _month == now.month;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+        child: Column(children: [
+          Row(children: [
+            IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => _step(-1)),
+            Expanded(child: InkWell(onTap: _pickMonth, borderRadius: BorderRadius.circular(8), child: Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text(monthLabel, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)), Icon(Icons.arrow_drop_down, size: 20, color: KJColors.inkSoft)])))),
+            IconButton(icon: const Icon(Icons.chevron_right), onPressed: () => _step(1)),
+            IconButton(icon: const Icon(Icons.today_outlined, size: 20), tooltip: l10n.epBackToCurrentMonth, onPressed: onCurrentMonth? null : () => setState(() {_year = now.year; _month = now.month;})),
+          ]),
+          const SizedBox(height: 6),
+          Wrap(spacing: 8, children: [for (final (system, label) in [(EphemerisSystem.nirayan, l10n.epNirayan), (EphemerisSystem.sayan, l10n.epSayan)]) ChoiceChip(label: Text(label), selected: _system == system, labelStyle: TextStyle(color: _system == system? KJColors.paper : KJColors.ink), onSelected: (_) => setState(() => _system = system))]),
+          const SizedBox(height: 4),
+          Align(alignment: Alignment.centerLeft, child: InkWell(onTap: _pickPlace, borderRadius: BorderRadius.circular(12), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.place_outlined, size: 14, color: KJColors.maroon), const SizedBox(width: 3), Text('${l10n.labelAscendant} · ${_place?.name.split(',').first?? '…'}', style: KJTheme.mono(size: 11.5, color: KJColors.maroon))])))),
+          if (_system == EphemerisSystem.nirayan)...[
+            const SizedBox(height: 10),
+            DropdownButtonFormField<int>(key: ValueKey(ayanamsaId), initialValue: ayanamsaId, decoration: InputDecoration(labelText: l10n.beSectionAyanamsa, isDense: true, border: const OutlineInputBorder()), items: [for (final a in Ayanamsa.all) DropdownMenuItem(value: a.id, child: Text(a.name))], onChanged: (id) => setState(() => _ayanamsaOverride = id)),
+          ],
+        ]),
+      ),
+    );
+  }
+
+  Widget _infoLines(AppLocalizations l10n, EphemerisMonth table) {
+    final localFirst = DateTime.utc(table.year, table.month, 1).toLocal();
+    final isIst = localFirst.timeZoneOffset == const Duration(hours: 5, minutes: 30);
+    final lines = [isIst? l10n.epReferenceTime : l10n.epReferenceTimeLocal(DateFormat('d MMM HH:mm').format(localFirst)), if (table.ayanamsaOnFirst!= null) l10n.epAyanamsaOnFirst(Ayanamsa.byId(table.ayanamsaId).name, formatDegree(table.ayanamsaOnFirst!))];
+    return Padding(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [for (final line in lines) Text(line, style: TextStyle(fontSize: 11.5, color: KJColors.inkSoft))]));
+  }
+
+  Widget _headerRow(AppLocalizations l10n, {required bool hasAsc}) {
+    return Container(height: _headerHeight, decoration: BoxDecoration(color: KJColors.paper, border: Border(bottom: BorderSide(color: KJColors.hairline))), child: Row(children: [const SizedBox(width: _dateColWidth), Expanded(child: ClipRect(child: SingleChildScrollView(scrollDirection: Axis.horizontal, controller: _hHead, physics: const NeverScrollableScrollPhysics(), child: Row(children: [if (hasAsc) SizedBox(width: _cellWidth, child: _headCell(l10n.labelAscendant, color: KJColors.maroon)), for (final p in Planet.values) SizedBox(width: _cellWidth, child: _headCell(p.abbrLabel(l10n), color: planetInk(p)))]))))]));
+  }
+
+  Widget _tableBody(AppLocalizations l10n, EphemerisMonth table, int? todayDay) {
+    final rowH = _rowHeight(table.system);
+    final weekdayFmt = DateFormat('EE');
+    BoxDecoration rowDeco(bool isToday) => BoxDecoration(color: isToday? Color.alphaBlend(KJColors.maroon.withValues(alpha: 0.07), KJColors.paper) : KJColors.paper, border: Border(top: BorderSide(color: KJColors.hairline)));
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Column(children: [for (final day in table.days) Container(width: _dateColWidth, height: rowH, decoration: rowDeco(day.day == todayDay), padding: const EdgeInsets.symmetric(horizontal: 4), child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${day.day}', style: TextStyle(fontSize: 12.5, fontWeight: day.day == todayDay? FontWeight.w700 : FontWeight.w600, color: day.day == todayDay? KJColors.maroon : KJColors.ink)), Text(weekdayFmt.format(DateTime(table.year, table.month, day.day)), style: TextStyle(fontSize: 9.5, color: KJColors.inkSoft))]))]),
+      Expanded(child: ClipRect(child: SingleChildScrollView(scrollDirection: Axis.horizontal, controller: _hBody, child: Column(children: [for (var i = 0; i < table.days.length; i++) Container(height: rowH, decoration: rowDeco(table.days[i].day == todayDay), child: Row(children: [if (table.days[i].ascendant!= null) _valueCell(l10n, longitude: table.days[i].ascendant!, changed: i > 0 && ZodiacSign.fromLongitude(table.days[i - 1].ascendant!)!= ZodiacSign.fromLongitude(table.days[i].ascendant!), withNakshatra: table.system == EphemerisSystem.nirayan), for (final planet in Planet.values) _valueCell(l10n, longitude: table.days[i].positions[planet]!.longitude, retro: table.days[i].positions[planet]!.isRetrograde && planet!= Planet.rahu && planet!= Planet.ketu, changed: i > 0 && table.days[i - 1].positions[planet]!.sign!= table.days[i].positions[planet]!.sign, withNakshatra: table.system == EphemerisSystem.nirayan)]))])))),
+    ]);
+  }
+
+  Widget _valueCell(AppLocalizations l10n, {required double longitude, bool retro = false, required bool changed, required bool withNakshatra}) {
+    final signsPassed = longitude ~/ 30;
+    final base = KJTheme.mono(size: 11.5, color: changed? KJColors.maroon : null);
+    return SizedBox(width: _cellWidth, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text.rich(TextSpan(children: [TextSpan(text: '$signsPassedˢ${formatDegree(longitude)}', style: changed? base.copyWith(fontWeight: FontWeight.w700) : base), if (retro) retroMark(11.5)])), if (withNakshatra) Text('${Nakshatra.fromLongitude(longitude).abbrLabel(l10n)} ${Nakshatra.padaFromLongitude(longitude)}', style: TextStyle(fontSize: 9.5, color: KJColors.inkSoft)) ])));
+  }
+
+  Widget _headCell(String text, {Color? color}) {
+    return Padding(padding: const EdgeInsets.all(8.0), child: Text(text, style: TextStyle(fontWeight: FontWeight.bold, color: color?? Colors.black87, fontSize: 12.5)));
+  }
+
+  InlineSpan retroMark(double size) {
+    return TextSpan(text: ' ℞', style: TextStyle(fontSize: size, color: Colors.red, fontWeight: FontWeight.bold));
+  }
+
+  String label(dynamic e) {
+    try { final v = (e as dynamic).label; if (v!= null) return v.toString(); } catch (_) {}
+    try { final v = (e as dynamic).name; if (v!= null) return v.toString(); } catch (_) {}
+    return e.toString();
+  }
+
+  Widget _eventsCard(AppLocalizations l10n, EphemerisMonth table) {
+    return Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Events", style: TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 8),...table.events.map((e) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Text(label(e))))])));
+  }
+}
+
+class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double height; final Widget child;
+  _PinnedHeaderDelegate({required this.height, required this.child});
+  @override double get minExtent => height;
+  @override double get maxExtent => height;
+  @override Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => SizedBox.expand(child: child);
+  @override bool shouldRebuild(covariant _PinnedHeaderDelegate oldDelegate) => oldDelegate.height!= height || oldDelegate.child!= child;
+}
+
+class _EphemerisPlacePickerDialog extends ConsumerStatefulWidget {
+  const _EphemerisPlacePickerDialog();
+  @override ConsumerState<_EphemerisPlacePickerDialog> createState() => _EphemerisPlacePickerDialogState();
+}
+
+class _EphemerisPlacePickerDialogState extends ConsumerState<_EphemerisPlacePickerDialog> {
+  final _ctrl = TextEditingController();
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return AlertDialog(
+      title: const Text('Pick Place'),
+      content: SizedBox(width: 360, child: TextField(controller: _ctrl, decoration: const InputDecoration(hintText: 'Search place'))),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(l10n.cancel)), TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+    );
+  }
+}
+
+String formatDegree(double deg) {
+  final d = deg % 30; final dm = d.floor(); final m = ((d - dm) * 60).floor(); final s = (((d - dm) * 60 - m) * 60).round();
+  return '${dm}°${m.toString().padLeft(2, '0')}\'${s.toString().padLeft(2, '0')}"';
+}
+
+Color planetInk(Planet p) {
+  switch (p) {
+    case Planet.sun: return const Color(0xFFB45309);
+    case Planet.moon: return const Color(0xFF475569);
+    case Planet.mars: return const Color(0xFFDC2626);
+    case Planet.mercury: return const Color(0xFF059669);
+    case Planet.jupiter: return const Color(0xFF7C3AED);
+    case Planet.venus: return const Color(0xFFDB2777);
+    case Planet.saturn: return const Color(0xFF1E293B);
+    case Planet.rahu: case Planet.ketu: return const Color(0xFF57534E);
+  }
+}
