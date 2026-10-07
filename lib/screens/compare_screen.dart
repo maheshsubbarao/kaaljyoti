@@ -10,6 +10,11 @@ class CompareSubject {
 class CompareChart {
   final String? locationGeneral;
   CompareChart({this.locationGeneral});
+  
+  // Fixed for dashboard
+  dynamic signOf(dynamic p) => null;
+  double lonOf(dynamic p) => 0.0;
+  Map<dynamic, double> get longitudes => const {};
 }
 
 class CompareEventDetail {
@@ -21,8 +26,8 @@ class CompareEventDetail {
   final String? mdLordLabel;
   final String? adLordLabel;
   final dynamic sadeSatiPhase;
-  final Map<Planet, int> transitHousesFromMoon;
-  final Map<Planet, int> transitHousesFromLagna;
+  final Map<dynamic, int> transitHousesFromMoon;
+  final Map<dynamic, int> transitHousesFromLagna;
   CompareEventDetail({
     this.subjectId = '',
     this.approximate = false,
@@ -32,10 +37,10 @@ class CompareEventDetail {
     this.mdLordLabel,
     this.adLordLabel,
     this.sadeSatiPhase,
-    Map<Planet, int>? transitHousesFromMoon,
-    Map<Planet, int>? transitHousesFromLagna,
-  }) : transitHousesFromMoon = transitHousesFromMoon ?? {},
-       transitHousesFromLagna = transitHousesFromLagna ?? {};
+    Map<dynamic, int>? transitHousesFromMoon,
+    Map<dynamic, int>? transitHousesFromLagna,
+  })  : transitHousesFromMoon = transitHousesFromMoon ?? const {},
+        transitHousesFromLagna = transitHousesFromLagna ?? const {};
 }
 
 class CompareFinding {
@@ -54,6 +59,7 @@ class CompareFinding {
 }
 
 class CompareEntry {}
+
 class MahakoshSubject extends CompareSubject {
   final dynamic mkChart;
   final dynamic snapshot;
@@ -61,6 +67,7 @@ class MahakoshSubject extends CompareSubject {
   @override
   CompareChart? get chart => CompareChart();
 }
+
 class LocalSubject extends CompareSubject {
   final dynamic kundli;
   final dynamic snapshot;
