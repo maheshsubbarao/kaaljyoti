@@ -78,4 +78,4 @@ flutter:
     - assets/kj_devanagari_pdf.ttf
     - assets/
     - assets/JyotishAppCharts.txt
-    - assets/ephe/
+   # - assets/ephe/

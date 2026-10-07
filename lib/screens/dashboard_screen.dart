@@ -26,11 +26,11 @@ import '../core/astro/compare.dart' show CompareChart;
 import '../core/date_format.dart';
 import '../core/theme/theme.dart';
 import '../data/dashboard_repository.dart';
-import '../data/jyotish_txt_importer.dart';
 import '../data/models.dart';
 import '../l10n/astro_l10n.dart';
 import '../services/long_screenshot.dart';
 import '../state/providers.dart';
+import 'astro_events_screen.dart';
 import '../ui/common.dart';
 import '../ui/dashboard_capture.dart';
 import '../ui/dashboard_layout.dart';
@@ -187,14 +187,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               // flag, and an unkept Prashna isn't in the list this would
               // remove it from. Reached only from here — list rows carry
               // no per-row menu by design.
-                            PopupMenuItem(
-                onTap: () {
-                  Future.delayed(const Duration(milliseconds: 300), () {
-                    if (context.mounted) _importJyotish835(context);
-                  });
-                },
-                child: _menuRow(Icons.download_for_offline_outlined, 'Import 835 Jyotish Charts'),
-              ),
               if (!isMahakoshKundliId(kundliId) &&
                   !(kundliAsync.value?.isEphemeral ?? false))
                 PopupMenuItem(
@@ -405,20 +397,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       height: 1,
     );
   }
-    Future<void> _importJyotish835(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(const SnackBar(content: Text('Loading 835 charts from assets...')));
-    try {
-      final charts = await JyotishTxtImporter.loadAllFromAssets();
-      messenger.showSnackBar(SnackBar(content: Text('Loaded ${charts.length} charts! Sample: ${charts.first.name}')));
-      for (var c in charts.take(5)) {
-        print('CHART: ${c.name} ${c.day}/${c.month}/${c.year} ${c.place} lon:${c.lon} lat:${c.lat}');
-      }
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
-    }
-  }
-
 
   Widget _ephemeralBanner(BuildContext context, WidgetRef ref, Kundli kundli) {
     return Container(

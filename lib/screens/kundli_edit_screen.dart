@@ -13,6 +13,7 @@ import '../charts/chart_style.dart';
 import '../core/astro/ayanamsa.dart';
 import '../core/theme/theme.dart';
 import '../data/models.dart';
+import '../mahakosh/models.dart';
 import '../services/place_lookup_service.dart';
 import '../ui/birth_form.dart';
 import '../ui/date_fields.dart';
@@ -836,14 +837,4 @@ class _KundliEditScreenState extends ConsumerState<KundliEditScreen> {
       ),
     );
   }
-    List<dynamic> lifeEventsFromStored(dynamic stored) {
-    try {
-      final v = (stored as dynamic).lifeEvents;
-      if (v is List) return v;
-      return [];
-    } catch (_) {
-      return [];
-    }
-  }
-
 }
