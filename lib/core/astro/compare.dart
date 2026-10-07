@@ -34,8 +34,8 @@ class CompareEventDetail {
     this.sadeSatiPhase,
     Map<Planet, int>? transitHousesFromMoon,
     Map<Planet, int>? transitHousesFromLagna,
-  })  : transitHousesFromMoon = transitHousesFromMoon ?? {},
-        transitHousesFromLagna = transitHousesFromLagna ?? {};
+  }) : transitHousesFromMoon = transitHousesFromMoon?? {},
+        transitHousesFromLagna = transitHousesFromLagna?? {};
 }
 
 class CompareFinding {
