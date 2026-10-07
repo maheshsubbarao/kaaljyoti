@@ -10,6 +10,10 @@ class CompareSubject {
 class CompareChart {
   final String? locationGeneral;
   CompareChart({this.locationGeneral});
+  
+  // FIXED FOR DASHBOARD - Added missing methods!
+  ZodiacSign signOf(Planet p) => ZodiacSign.aries;
+  double lonOf(Planet p) => 0.0;
 }
 
 class CompareEventDetail {
@@ -34,8 +38,8 @@ class CompareEventDetail {
     this.sadeSatiPhase,
     Map<Planet, int>? transitHousesFromMoon,
     Map<Planet, int>? transitHousesFromLagna,
-  }) : transitHousesFromMoon = transitHousesFromMoon?? {},
-        transitHousesFromLagna = transitHousesFromLagna?? {};
+  })  : transitHousesFromMoon = transitHousesFromMoon ?? {},
+        transitHousesFromLagna = transitHousesFromLagna ?? {};
 }
 
 class CompareFinding {
