@@ -84,7 +84,7 @@ const List<AstroModule> _allModules = [
   BhavaBalaModule(),
   // ResearchLabModule(),
   MDTechniqueModule(),
-  ADTechniqueModule(),
+  // ADTechniqueModule(), // DELETED
   D9TechniqueModule(),
   SJMHModule(),
   AIOModule(),
