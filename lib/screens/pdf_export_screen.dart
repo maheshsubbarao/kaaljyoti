@@ -447,7 +447,7 @@ class _PdfExportScreenState extends ConsumerState<PdfExportScreen> {
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  activeThumbColor: KJColors.maroon,
+                  activeColor: KJColors.maroon,
                   value: _coverPage,
                   onChanged: (v) => _mutate(() => _coverPage = v),
                   title: Text(context.l10n.peCoverPage,
