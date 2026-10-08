@@ -1,78 +1,21 @@
-name: Build Kaal Jyoti APK
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-
+name: build
+on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Java 21
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '21'
-          
-      - name: Setup Flutter Latest
-        uses: subosito/flutter-action@v2
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.6'
+          flutter-version: '3.24.5'
           channel: 'stable'
-          
-      - name: Recreate Android
-        run: |
-          rm -rf android
-          flutter create . --platforms=android --project-name kaaljyoti
-          
-      - name: FIX ALL DART BUGS
-        run: |
-          find lib -type f -name "*.dart" -exec sed -i 's/onReorderItem/onReorder/g' {} \;
-          sed -i 's/ResearchLabModule(),/\/\/ ResearchLabModule disabled/g' lib/widgetsystem/registry.dart || true
-          
-      - name: FIX Desugaring PROPERLY
-        run: |
-          python3 << 'PY'
-          path = "android/app/build.gradle.kts"
-          with open(path, 'r') as f:
-              content = f.read()
-          
-          # 1. Add isCoreLibraryDesugaringEnabled = true inside compileOptions
-          if "isCoreLibraryDesugaringEnabled" not in content:
-              content = content.replace(
-                  "compileOptions {",
-                  "compileOptions {\n        isCoreLibraryDesugaringEnabled = true"
-              )
-          
-          # 2. Fix dependencies block - ensure it has desugar dep
-          if "desugar_jdk_libs" not in content:
-              # Replace empty dependencies {} or add inside
-              if "dependencies {}" in content:
-                  content = content.replace("dependencies {}", 'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}')
-              elif "dependencies {" in content:
-                  content = content.replace("dependencies {", 'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")')
-              else:
-                  # Add at end if no dependencies block
-                  content += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
-          
-          with open(path, 'w') as f:
-              f.write(content)
-          
-          print("=== PATCHED FILE ===")
-          print(content)
-          PY
-          
-      - name: Get packages
-        run: flutter pub get
-          
-      - name: Build APK
-        run: flutter build apk --release
-          
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - run: flutter pub get
+      - run: flutter build apk --release --no-tree-shake-icons
+      - uses: actions/upload-artifact@v4
         with:
-          name: kaal-jyoti-apk
+          name: app-release
           path: build/app/outputs/flutter-apk/app-release.apk
