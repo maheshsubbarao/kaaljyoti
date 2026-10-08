@@ -200,7 +200,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               color: enabled ? null : KJColors.inkSoft,
             ),
           ),
-          activeThumbColor: KJColors.maroon,
+          activeColor: KJColors.maroon,
           value: value,
           onChanged: enabled ? onChanged : null,
         );
@@ -539,7 +539,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   dense: true,
                   title: Text(l10n.stBoldPlanetNames,
                       style: const TextStyle(fontSize: 13.5)),
-                  activeThumbColor: KJColors.maroon,
+                  activeColor: KJColors.maroon,
                   value: t.weight != FontWeight.w400,
                   onChanged: (v) => set(t.copyWith(
                       weight: v ? FontWeight.w600 : FontWeight.w400)),
