@@ -115,7 +115,7 @@ class _FilterBuilderSheetState extends State<FilterBuilderSheet> {
           const SizedBox(height: 16),
           if (_type.startsWith('planet_'))
             DropdownButtonFormField<Planet>(
-              initialValue: _planet,
+              value: _planet,
               decoration: InputDecoration(labelText: context.l10n.nrPlanet),
               items: [
                 for (final p in Planet.values)
@@ -129,7 +129,7 @@ class _FilterBuilderSheetState extends State<FilterBuilderSheet> {
           const SizedBox(height: 10),
           if (_type == 'planet_in_sign')
             DropdownButtonFormField<int>(
-              initialValue: _sign,
+              value: _sign,
               decoration: InputDecoration(labelText: context.l10n.msSign),
               items: [
                 for (final s in ZodiacSign.values)
@@ -140,7 +140,7 @@ class _FilterBuilderSheetState extends State<FilterBuilderSheet> {
             ),
           if (_type == 'planet_in_house')
             DropdownButtonFormField<int>(
-              initialValue: _house,
+              value: _house,
               decoration:
                   InputDecoration(labelText: context.l10n.nrHouseFromLagna),
               items: [
@@ -152,7 +152,7 @@ class _FilterBuilderSheetState extends State<FilterBuilderSheet> {
             ),
           if (_type == 'planet_in_nakshatra')
             DropdownButtonFormField<int>(
-              initialValue: _nakshatra,
+              value: _nakshatra,
               decoration:
                   InputDecoration(labelText: context.l10n.labelNakshatra),
               items: [
