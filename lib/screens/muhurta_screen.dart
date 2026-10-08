@@ -133,11 +133,12 @@ class _MuhurtaScreenState extends ConsumerState<MuhurtaScreen> {
         abhijit: abhijitMuhurtaWindow(sunrise, sunset),
         abhijitApplies: abhijitApplies(sunrise),
       );
-      if (mounted)
+      if (mounted) {
         setState(() {
           _data = data;
           _error = null;
         });
+      }
     } catch (e) {
       if (mounted) setState(() => _error = e);
     }
@@ -591,10 +592,12 @@ class _MuhurtaPlacePickerDialogState
     _debounce = Timer(const Duration(milliseconds: 350), () async {
       try {
         final results = await ref.read(placeLookupProvider).search(q);
-        if (mounted) setState(() {
+        if (mounted) {
+          setState(() {
               _results = results;
               _searchFailed = false;
             });
+        }
       } catch (_) {
         // Offline / dead network: surface inline rather than letting the
         // exception escape the Timer callback and get reported as a crash.

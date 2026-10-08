@@ -66,7 +66,7 @@ Color _lordInk(VarshaDashaPeriod p) =>
 
 String _daysText(AppLocalizations l10n, VarshaDashaPeriod p) {
   final days = p.length.inMilliseconds / Duration.millisecondsPerDay;
-  return l10n.vdDays('${days.toStringAsFixed(days < 10 ? 1 : 0)}');
+  return l10n.vdDays(days.toStringAsFixed(days < 10 ? 1 : 0));
 }
 
 String _rangeText(VarshaDashaPeriod p) =>

@@ -216,11 +216,11 @@ class _MatchBody extends ConsumerWidget {
             : pw.SizedBox(),
         build: (_) => [
           pw.Text('KAAL JYOTI',
-              style: pw.TextStyle(
+              style: const pw.TextStyle(
                   fontSize: 11, letterSpacing: 4, color: pdfInkSoft)),
           pw.SizedBox(height: 6),
           pw.Text(l10n.akTitle,
-              style: pw.TextStyle(
+              style: const pw.TextStyle(
                   fontSize: 22, color: pdfInk, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 4),
           pw.Text(
@@ -229,7 +229,7 @@ class _MatchBody extends ConsumerWidget {
               GunaMilanResult.maxTotal.toStringAsFixed(0),
               result.verdict.label(l10n),
             ),
-            style: pw.TextStyle(fontSize: 14, color: pdfMaroon),
+            style: const pw.TextStyle(fontSize: 14, color: pdfMaroon),
           ),
           pdfSectionHeader(l10n.akKootaBreakdown),
           pdfDataTable(
@@ -270,13 +270,13 @@ class _MatchBody extends ConsumerWidget {
               padding: const pw.EdgeInsets.only(top: 4),
               child: pw.Text(
                 l10n.akMangalMismatch,
-                style: pw.TextStyle(fontSize: 9, color: pdfInkSoft),
+                style: const pw.TextStyle(fontSize: 9, color: pdfInkSoft),
               ),
             ),
           pw.SizedBox(height: 8),
           pw.Text(
             l10n.akPdfDisclaimer,
-            style: pw.TextStyle(fontSize: 7.5, color: pdfInkSoft),
+            style: const pw.TextStyle(fontSize: 7.5, color: pdfInkSoft),
           ),
         ],
       ),
@@ -318,7 +318,7 @@ class _ScoreDial extends StatelessWidget {
                 ),
               ),
               Text(
-                '${result.total.toStringAsFixed(1)}',
+                result.total.toStringAsFixed(1),
                 style: KJTheme.serif(size: 20, color: color),
               ),
             ],

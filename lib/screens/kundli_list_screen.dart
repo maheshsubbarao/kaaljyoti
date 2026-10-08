@@ -1,21 +1,10 @@
-/// Screen 02 — Kundli List. Landing screen: the saved kundlis, built to
-/// stay findable at library sizes in the hundreds — search, sort, pins, a
-/// recents strip, and label/relation filter chips, with the row itself
-/// pared back to what actually identifies a chart.
-///
-/// Two things here are load-bearing for large libraries and easy to undo
-/// by accident:
-///   * the list is LAZY (slivers + builder). The old eager `ListView`
-///     built every row on open, and every row watched [snapshotProvider],
-///     so opening this screen with 200 kundlis meant 200 ephemeris
-///     computations.
-///   * the lagna/moon quick reads — the only thing here that needs a
-///     snapshot — exist in the DETAILED density only, so the default
-///     costs no astronomy at all.
 library;
 
 import 'dart:async';
-
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -32,18 +21,10 @@ import '../services/location_service.dart';
 import '../state/providers.dart';
 import '../ui/common.dart';
 
-/// Multi-select state for the "Compare (n)" entry (spec §3.1) and the
-/// bulk pin/label/delete actions. Null = not in select mode.
 final kundliMultiSelectProvider = StateProvider<Set<String>?>((ref) => null);
-
-/// Library sizes at which the finding aids start earning their space. A
-/// user with eight charts wants none of this chrome; a user with two
-/// hundred needs all of it.
 const _searchThreshold = 8;
 const _recentsThreshold = 12;
 const _sectionHeaderThreshold = 30;
-
-/// How many charts the recents strip shows.
 const _recentsShown = 8;
 
 class KundliListScreen extends ConsumerWidget {
@@ -58,11 +39,17 @@ class KundliListScreen extends ConsumerWidget {
 
     return KJScaffold(
       section: KJSection.kundlis,
-      appBar: selection != null
-          ? _selectAppBar(context, ref, selection)
+      appBar: selection!= null
+         ? _selectAppBar(context, ref, selection)
           : AppBar(
               title: Text(l10n.kundlisTitle),
               actions: [
+                // NEW: IMPORT BUTTON
+                IconButton(
+                  icon: const Icon(Icons.file_upload_outlined),
+                  tooltip: 'Import JyotishAppCharts.txt',
+                  onPressed: () => _importJyotishAppCharts(context, ref),
+                ),
                 const _ListOptionsButton(),
                 IconButton(
                   icon: const Icon(Icons.notifications_none),
@@ -88,14 +75,99 @@ class KundliListScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => EmptyState(message: l10n.klLoadError('$e')),
         data: (list) => list.totalCount == 0
-            ? _firstRun(context, user)
+           ? _firstRun(context, user)
             : _Library(data: list, showSignIn: user == null),
       ),
     );
   }
 
-  /// First-run: no kundlis at all. Distinct from "no search matches",
-  /// which [_Library] handles.
+  // NEW IMPORT LOGIC - NO EPhemeris calc, just save raw
+Future<void> _importJyotishAppCharts(BuildContext context, WidgetRef ref) async {
+  final l10n = context.l10n;
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final content = await rootBundle.loadString('assets/JyotishAppCharts.txt');
+    final lines = content.split('\n').where((l) => l.trim().isNotEmpty).toList();
+    
+    messenger.showSnackBar(SnackBar(content: Text('Found ${lines.length} charts! Importing...')));
+    
+    int imported = 0;
+    final repo = ref.read(kundliRepoProvider);
+    
+    for (var line in lines) {
+      line = line.trim();
+      if (line.isEmpty) continue;
+      
+      // Format: Name|DD-MM-YYYY|HH:MM|Lat|Lon|Place  OR Name:::...
+      var parts = line.split('|');
+      if (parts.length < 2) parts = line.split(':::');
+      if (parts.length < 2) parts = line.split('\t');
+      
+      final name = parts[0].trim();
+      if (name.isEmpty) continue;
+      
+      try {
+        String dateStr = parts.length > 1 ? parts[1].trim() : '';
+        String timeStr = parts.length > 2 ? parts[2].trim() : '12:00';
+        double lat = 23.0;
+        double lon = 82.0;
+        String place = 'India';
+        
+        if (parts.length > 3) lat = double.tryParse(parts[3].trim()) ?? lat;
+        if (parts.length > 4) lon = double.tryParse(parts[4].trim()) ?? lon;
+        if (parts.length > 5) place = parts[5].trim();
+        if (parts.length == 4) place = parts[3].trim();
+        
+        // Parse date DD-MM-YYYY or DD/MM/YYYY or YYYY-MM-DD
+        DateTime? localDt;
+        if (dateStr.isNotEmpty) {
+          dateStr = dateStr.replaceAll('/', '-').replaceAll('.', '-');
+          var dParts = dateStr.split('-');
+          if (dParts.length == 3) {
+            int day, month, year;
+            if (dParts[0].length == 4) {
+              year = int.parse(dParts[0]); month = int.parse(dParts[1]); day = int.parse(dParts[2]);
+            } else {
+              day = int.parse(dParts[0]); month = int.parse(dParts[1]); year = int.parse(dParts[2]);
+              if (year < 100) year += 1900;
+            }
+            var tParts = timeStr.split(':');
+            int hour = int.tryParse(tParts[0]) ?? 12;
+            int minute = tParts.length > 1 ? int.tryParse(tParts[1]) ?? 0 : 0;
+            localDt = DateTime(year, month, day, hour, minute);
+          }
+        }
+        localDt ??= DateTime(1990, 1, 1, 12, 0);
+        
+        // Create kundli - using IST offset +330 min
+        await repo.create(
+          name: name,
+          relationTag: 'Imported',
+          birthUtc: localDt.toUtc(),
+          latitude: lat,
+          longitude: lon,
+          timezoneName: 'Asia/Kolkata',
+          utcOffsetMinutes: 330,
+          placeName: place,
+        );
+        imported++;
+        
+        if (imported % 50 == 0) {
+          messenger.showSnackBar(SnackBar(content: Text('Imported $imported/${lines.length}...')));
+        }
+      } catch (e) {
+        debugPrint('Failed $name: $e');
+      }
+    }
+    
+    ref.invalidate(kundlisProvider);
+    ref.invalidate(kundliListDataProvider);
+    messenger.showSnackBar(SnackBar(content: Text('Success! Imported $imported charts to Home!')));
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
+  }
+}
+
   Widget _firstRun(BuildContext context, Object? user) {
     final l10n = context.l10n;
     return Column(
@@ -108,8 +180,6 @@ class KundliListScreen extends ConsumerWidget {
             onAction: () => context.push('/new'),
           ),
         ),
-        // Secondary, value-framed sign-in nudge — an account is never
-        // required to cast charts (brief: value-driven, not a login wall).
         if (user == null)
           Padding(
             padding: const EdgeInsets.fromLTRB(
@@ -132,8 +202,6 @@ class KundliListScreen extends ConsumerWidget {
     );
   }
 
-  /// The multi-select app bar (spec §3.1): "n selected", Compare at 2–4,
-  /// bulk pin / alerts / label / archive / delete, and a close button.
   PreferredSizeWidget _selectAppBar(
       BuildContext context, WidgetRef ref, Set<String> selection) {
     final l10n = context.l10n;
@@ -150,62 +218,55 @@ class KundliListScreen extends ConsumerWidget {
           icon: Icons.push_pin_outlined,
           tooltip: l10n.klPin,
           onPressed: selection.isEmpty
-              ? null
+             ? null
               : () => _bulkPin(context, ref, selection),
         ),
         _selectAction(
           icon: Icons.notifications_active_outlined,
           tooltip: l10n.klFollowAlerts,
           onPressed: selection.isEmpty
-              ? null
+             ? null
               : () => _bulkFollow(context, ref, selection),
         ),
         _selectAction(
           icon: Icons.sell_outlined,
           tooltip: l10n.klLabels,
           onPressed: selection.isEmpty
-              ? null
+             ? null
               : () => _bulkLabel(context, ref, selection),
         ),
-        // Archive sits next to delete because that is the choice being
-        // made — get this out of my list, permanently or not. Direction
-        // is read from the selection, so the one button toggles.
         Consumer(builder: (context, ref, _) {
           final archived = _selectionArchived(ref, selection);
           return _selectAction(
             icon:
-                archived ? Icons.unarchive_outlined : Icons.archive_outlined,
-            tooltip: archived ? l10n.klUnarchive : l10n.klArchive,
+                archived? Icons.unarchive_outlined : Icons.archive_outlined,
+            tooltip: archived? l10n.klUnarchive : l10n.klArchive,
             onPressed: selection.isEmpty
-                ? null
+               ? null
                 : () =>
-                    _bulkArchive(context, ref, selection, archived: !archived),
+                    _bulkArchive(context, ref, selection, archived:!archived),
           );
         }),
         _selectAction(
           icon: Icons.delete_outline,
           tooltip: l10n.delete,
           onPressed: selection.isEmpty
-              ? null
+             ? null
               : () => _bulkDelete(context, ref, selection),
         ),
         Padding(
           padding: const EdgeInsets.only(right: KJSpace.sm),
           child: FilledButton(
             onPressed: canCompare
-                ? () {
+               ? () {
                     ref.read(compareSetProvider.notifier).clear();
                     ref
-                        .read(compareSetProvider.notifier)
-                        .addAll(selection.toList());
+                       .read(compareSetProvider.notifier)
+                       .addAll(selection.toList());
                     ref.read(kundliMultiSelectProvider.notifier).state = null;
                     context.push('/compare');
                   }
                 : null,
-            // Tighter than the app's usual button padding, for the same
-            // reason [_selectAction] is: this bar is the widest thing in
-            // the app and an AppBar's trailing row clips rather than
-            // wraps. Everything here is paying for the space.
             style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                     horizontal: KJSpace.md, vertical: KJSpace.sm)),
@@ -216,13 +277,6 @@ class KundliListScreen extends ConsumerWidget {
     );
   }
 
-  /// One bulk action in the select bar.
-  ///
-  /// Compact by construction: five icon buttons plus "Compare (n)" is
-  /// more than a narrow phone's app bar can hold at the stock 48pt slot,
-  /// and the trailing row of an AppBar clips rather than wraps. 40pt
-  /// keeps a usable target while buying back the width the fifth action
-  /// costs.
   Widget _selectAction({
     required IconData icon,
     required String tooltip,
@@ -237,8 +291,6 @@ class KundliListScreen extends ConsumerWidget {
         constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
       );
 
-  /// Pins the selection — or unpins it, when every selected chart is
-  /// already pinned, so the one button toggles the way a user expects.
   void _bulkPin(BuildContext context, WidgetRef ref, Set<String> selection) {
     final pins = ref.read(pinnedKundlisProvider.notifier);
     final allPinned = selection.every(pins.isPinned);
@@ -250,21 +302,13 @@ class KundliListScreen extends ConsumerWidget {
     ref.read(kundliMultiSelectProvider.notifier).state = null;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(allPinned
-          ? context.l10n.klUnpinnedN('${selection.length}')
+         ? context.l10n.klUnpinnedN('${selection.length}')
           : context.l10n.klPinnedN('${selection.length}')),
     ));
   }
 
-  /// Follows the selection for event alerts — or unfollows it when every
-  /// selected chart is already followed, exactly like [_bulkPin].
-  ///
-  /// Mahakosh community charts are never eligible: they are read-only,
-  /// server-owned and anonymized (no birth time), so there is nothing
-  /// this device could compute alerts from. The list itself only ever
-  /// contains saved, non-ephemeral kundlis, but the guard is cheap and
-  /// keeps a stray id out of the follow-set.
   void _bulkFollow(BuildContext context, WidgetRef ref, Set<String> selection) {
-    final eligible = selection.where((id) => !isMahakoshKundliId(id)).toSet();
+    final eligible = selection.where((id) =>!isMahakoshKundliId(id)).toSet();
     if (eligible.isEmpty) return;
     final follows = ref.read(followedKundlisProvider.notifier);
     final allFollowed = eligible.every(follows.isFollowed);
@@ -272,14 +316,12 @@ class KundliListScreen extends ConsumerWidget {
       follows.removeAll(eligible);
     } else {
       follows.addAll(eligible);
-      // First follow is the moment the permission prompt makes sense —
-      // the user has just asked to be notified about something.
       unawaited(ref.read(kundliAlertServiceProvider).ensurePermission());
     }
     ref.read(kundliMultiSelectProvider.notifier).state = null;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(allFollowed
-          ? context.l10n.klAlertsOffN('${eligible.length}')
+         ? context.l10n.klAlertsOffN('${eligible.length}')
           : context.l10n.klAlertsOnN('${eligible.length}')),
     ));
   }
@@ -301,16 +343,11 @@ class KundliListScreen extends ConsumerWidget {
     ref.read(kundliMultiSelectProvider.notifier).state = null;
   }
 
-  /// True when EVERY selected chart is already archived, which is what
-  /// turns the one button into Unarchive — the same rule [_bulkPin] and
-  /// [_bulkFollow] already use. A MIXED selection archives: that is the
-  /// safe direction, since it never drags a chart back into a list the
-  /// user is in the middle of tidying.
   bool _selectionArchived(WidgetRef ref, Set<String> selection) {
     if (selection.isEmpty) return false;
-    final all = ref.watch(kundlisProvider).value ?? const <Kundli>[];
+    final all = ref.watch(kundlisProvider).value?? const <Kundli>[];
     final byId = {for (final k in all) k.id: k};
-    return selection.every((id) => byId[id]?.isArchived ?? false);
+    return selection.every((id) => byId[id]?.isArchived?? false);
   }
 
   Future<void> _bulkArchive(
@@ -319,10 +356,6 @@ class KundliListScreen extends ConsumerWidget {
     Set<String> selection, {
     required bool archived,
   }) async {
-    // Captured before the awaits inside the helper: the select bar is
-    // gone by the time the snackbar goes up — and the CONTAINER rather
-    // than ref, because archiving the view's last visible rows can
-    // dispose this very widget mid-await (and Undo outlives it always).
     final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
     final container = ProviderScope.containerOf(context, listen: false);
@@ -331,12 +364,12 @@ class KundliListScreen extends ConsumerWidget {
     await setKundlisArchived(container, ids, archived: archived);
     messenger.showSnackBar(SnackBar(
       content: Text(archived
-          ? l10n.klArchivedN('${ids.length}')
+         ? l10n.klArchivedN('${ids.length}')
           : l10n.klUnarchivedN('${ids.length}')),
       action: SnackBarAction(
         label: l10n.klUndo,
         onPressed: () =>
-            setKundlisArchived(container, ids, archived: !archived),
+            setKundlisArchived(container, ids, archived:!archived),
       ),
     ));
   }
@@ -361,24 +394,15 @@ class KundliListScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed!= true) return;
 
     final repo = ref.read(kundliRepoProvider);
     final sync = ref.read(syncServiceProvider);
     for (final id in selection) {
       await repo.delete(id);
-      // Tombstone, not a bare local delete — without this a synced chart
-      // is resurrected by the next pull from another device, and the
-      // dialog above promised the opposite.
       sync?.deleteRemote(id);
     }
-    // Once, after the loop — pingSoon is debounced, so calling it per id
-    // would be harmless, but there is no reason to make the timer do the
-    // coalescing a for-loop boundary already does.
     ref.read(devicePingServiceProvider)?.pingSoon();
-    // A deleted chart must not keep a slot in the recents strip, the
-    // pins, or the alert follow-set (a stale follow would keep costing
-    // an ephemeris pass and schedule alerts for a chart that is gone).
     ref.read(pinnedKundlisProvider.notifier).removeAll(selection);
     ref.read(followedKundlisProvider.notifier).removeAll(selection);
     ref.read(recentKundlisProvider.notifier).forget(selection);
@@ -386,12 +410,6 @@ class KundliListScreen extends ConsumerWidget {
     ref.read(kundliMultiSelectProvider.notifier).state = null;
   }
 
-  /// Instant Prashna: current place + current instant, chart shown
-  /// immediately as an EPHEMERAL kundli — the dashboard offers
-  /// Keep / Discard. Falls back to the manual form if location is
-  /// unavailable. Ephemeral rows are filtered out of the list until kept
-  /// (see [KundliRepository.saved]), so a discarded question never looks
-  /// like a saved chart.
   Future<void> _castPrashna(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
@@ -422,7 +440,7 @@ class KundliListScreen extends ConsumerWidget {
       messenger.hideCurrentSnackBar();
       messenger.showSnackBar(SnackBar(
         content: Text(denied.permanently
-            ? l10n.klLocationDisabled
+           ? l10n.klLocationDisabled
             : l10n.klLocationUnavailable),
       ));
       if (context.mounted) context.push('/new?prashna=1');
@@ -433,8 +451,6 @@ class KundliListScreen extends ConsumerWidget {
   }
 }
 
-/// The populated list. Everything above the rows is conditional on
-/// library size — see the thresholds at the top of the file.
 class _Library extends ConsumerWidget {
   const _Library({required this.data, required this.showSignIn});
 
@@ -448,23 +464,18 @@ class _Library extends ConsumerWidget {
     final sort = ref.watch(kundliSortProvider);
     final query = ref.watch(kundliSearchProvider);
     final filter = ref.watch(kundliFilterProvider);
-    final searching = query.trim().isNotEmpty || filter != null;
+    final searching = query.trim().isNotEmpty || filter!= null;
 
     final showSearch = data.totalCount >= _searchThreshold;
     final showRecents = data.totalCount >= _recentsThreshold &&
-        !searching &&
+       !searching &&
         data.recents.isNotEmpty;
-    // A–Z grouping only makes sense in name order, and only once the list
-    // is long enough that the letters actually break it up.
     final grouped = sort == KundliSort.name &&
         data.others.length >= _sectionHeaderThreshold;
 
     return CustomScrollView(
       slivers: [
         if (showSearch) const SliverToBoxAdapter(child: _SearchField()),
-        // The row earns its space as soon as there is anything to sort
-        // by — including an archive on its own, which is the only way
-        // back to those charts.
         if (data.labels.isNotEmpty ||
             data.relationTags.length > 1 ||
             data.archivedCount > 0)
@@ -478,7 +489,7 @@ class _Library extends ConsumerWidget {
                 KJSpace.lg, KJSpace.xs, KJSpace.lg, KJSpace.md),
             child: Text(
               searching
-                  ? l10n.klShowingCount(
+                 ? l10n.klShowingCount(
                       '${data.visibleCount}', '${data.totalCount}')
                   : l10n.savedEncrypted(data.totalCount),
               style: KJType.meta(size: 11.5, color: KJColors.inkSoft),
@@ -497,7 +508,7 @@ class _Library extends ConsumerWidget {
               },
             ),
           ),
-        if (data.pinned.isNotEmpty) ...[
+        if (data.pinned.isNotEmpty)...[
           SliverToBoxAdapter(child: _SectionLabel(label: l10n.klPinned)),
           SliverList.builder(
             itemCount: data.pinned.length,
@@ -508,7 +519,7 @@ class _Library extends ConsumerWidget {
             SliverToBoxAdapter(child: _SectionLabel(label: l10n.klAllKundlis)),
         ],
         if (grouped)
-          ..._groupedSlivers(data.others, density)
+         ..._groupedSlivers(data.others, density)
         else
           SliverList.builder(
             itemCount: data.others.length,
@@ -528,9 +539,6 @@ class _Library extends ConsumerWidget {
     );
   }
 
-  /// One sticky letter header per initial, each followed by its rows.
-  /// [SliverMainAxisGroup] is what makes the header stick only for the
-  /// span of its own group rather than over the whole list.
   List<Widget> _groupedSlivers(List<Kundli> kundlis, KundliDensity density) {
     final groups = <String, List<Kundli>>{};
     for (final k in kundlis) {
@@ -577,14 +585,11 @@ class _Library extends ConsumerWidget {
       );
 }
 
-/// The letter a name files under. Anything that isn't a letter — a chart
-/// named for a number, or a script whose first rune isn't A–Z — files
-/// under '#' rather than creating a one-item group per glyph.
 String initialFor(String name) {
   final trimmed = name.trim();
   if (trimmed.isEmpty) return '#';
   final first = trimmed[0].toUpperCase();
-  return RegExp(r'[A-Z]').hasMatch(first) ? first : '#';
+  return RegExp(r'[A-Z]').hasMatch(first)? first : '#';
 }
 
 class _LetterHeaderDelegate extends SliverPersistentHeaderDelegate {
@@ -609,7 +614,7 @@ class _LetterHeaderDelegate extends SliverPersistentHeaderDelegate {
       );
 
   @override
-  bool shouldRebuild(_LetterHeaderDelegate old) => old.letter != letter;
+  bool shouldRebuild(_LetterHeaderDelegate old) => old.letter!= letter;
 }
 
 class _SectionLabel extends StatelessWidget {
@@ -624,8 +629,6 @@ class _SectionLabel extends StatelessWidget {
       );
 }
 
-/// Always-visible search. Behind an icon it would be a fallback; at
-/// several hundred charts it's the primary way in.
 class _SearchField extends ConsumerStatefulWidget {
   const _SearchField();
 
@@ -645,10 +648,8 @@ class _SearchFieldState extends ConsumerState<_SearchField> {
 
   @override
   Widget build(BuildContext context) {
-    // Keep the field in step when the query is cleared from elsewhere
-    // (the no-matches empty state).
     ref.listen(kundliSearchProvider, (_, next) {
-      if (next != _controller.text) _controller.text = next;
+      if (next!= _controller.text) _controller.text = next;
     });
     final query = ref.watch(kundliSearchProvider);
 
@@ -665,7 +666,7 @@ class _SearchFieldState extends ConsumerState<_SearchField> {
           prefixIcon:
               Icon(Icons.search, size: KJIcon.lg, color: KJColors.inkSoft),
           suffixIcon: query.isEmpty
-              ? null
+             ? null
               : IconButton(
                   icon: const Icon(Icons.close, size: KJIcon.md),
                   tooltip: context.l10n.klClearSearch,
@@ -680,17 +681,6 @@ class _SearchFieldState extends ConsumerState<_SearchField> {
   }
 }
 
-/// Relation tags, user labels and the archive in one scrolling row.
-/// Chips rather than tabs because chips compose with search (Client +
-/// "sharma") and cost no permanent vertical space when there's nothing
-/// to filter by.
-///
-/// The archived chip is the odd one out and deliberately so: the other
-/// chips narrow the active library, while this one steps out of it. It
-/// lives here rather than in a section of its own because "which slice
-/// of my charts am I looking at" is one question, and answering it in
-/// two different places (a chip row AND a fold-out at the bottom of a
-/// 200-row list) is how an archive becomes a place things get lost.
 class _FilterChips extends ConsumerWidget {
   const _FilterChips({required this.data});
   final KundliListData data;
@@ -730,17 +720,12 @@ class _FilterChips extends ConsumerWidget {
               onTap: () => select((kind: KundliFilterKind.label, value: label)),
               icon: Icons.sell_outlined,
             ),
-          // Last, and only once something has been archived. It carries
-          // its own glyph so it can't be mistaken for a user label that
-          // happens to be called "Archived" — and unlike every other
-          // chip, selecting it REPLACES the list body rather than
-          // narrowing it. Tapping it again (or "All") comes back.
           if (data.archivedCount > 0)
             _chip(
               label: l10n.klArchived('${data.archivedCount}'),
               selected: active?.kind == KundliFilterKind.archived,
               onTap: () => select(active?.kind == KundliFilterKind.archived
-                  ? null
+                 ? null
                   : kArchivedFilter),
               icon: Icons.archive_outlined,
             ),
@@ -764,28 +749,28 @@ class _FilterChips extends ConsumerWidget {
                 horizontal: KJSpace.md, vertical: KJSpace.sm),
             decoration: BoxDecoration(
               color: selected
-                  ? KJColors.maroon.withValues(alpha: KJTint.soft)
+                 ? KJColors.maroon.withValues(alpha: KJTint.soft)
                   : KJColors.paperAlt,
               borderRadius: KJRadius.all(KJRadius.pill),
               border: Border.all(
                   color: selected
-                      ? KJColors.maroon.withValues(alpha: KJTint.muted)
+                     ? KJColors.maroon.withValues(alpha: KJTint.muted)
                       : KJColors.hairline),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (icon != null) ...[
+                if (icon!= null)...[
                   Icon(icon,
                       size: KJIcon.inline,
-                      color: selected ? KJColors.maroon : KJColors.inkSoft),
+                      color: selected? KJColors.maroon : KJColors.inkSoft),
                   KJSpace.gapW(KJSpace.xs),
                 ],
                 Text(
                   label,
                   style: KJType.chip(
                       size: 12,
-                      color: selected ? KJColors.maroon : KJColors.inkSoft),
+                      color: selected? KJColors.maroon : KJColors.inkSoft),
                 ),
               ],
             ),
@@ -794,10 +779,6 @@ class _FilterChips extends ConsumerWidget {
       );
 }
 
-/// The charts opened most recently. The "Recently opened" SORT already
-/// floats the working set to the top of the list; this strip is the
-/// jump-back-to-what-I-just-had affordance, which is a different job —
-/// it survives the user switching to name or birth-date order.
 class _RecentsStrip extends ConsumerWidget {
   const _RecentsStrip({required this.recents});
   final List<Kundli> recents;
@@ -849,8 +830,6 @@ class _RecentsStrip extends ConsumerWidget {
   }
 }
 
-/// Sort and density, together in one menu — both answer "how do I want
-/// to see this list", and neither deserves its own app-bar slot.
 class _ListOptionsButton extends ConsumerWidget {
   const _ListOptionsButton();
 
@@ -861,10 +840,6 @@ class _ListOptionsButton extends ConsumerWidget {
     final density = ref.watch(kundliDensityProvider);
 
     return PopupMenuButton<void Function()>(
-      // Deliberately NOT Icons.tune: the dashboard uses that glyph in the
-      // same app-bar slot for "arrange widgets", and these two screens
-      // are one tap apart. Also not Icons.filter_list — that would read
-      // as the filter chip row directly below.
       icon: const Icon(Icons.sort),
       tooltip: l10n.klListOptions,
       onSelected: (action) => action(),
@@ -905,29 +880,6 @@ String densityLabel(AppLocalizations l10n, KundliDensity density) =>
       KundliDensity.detailed => l10n.klDensityDetailed,
     };
 
-/// Archives (or unarchives) [ids] and puts the list back in step.
-///
-/// Shared by the list's bulk action bar and the dashboard's overflow
-/// menu so the two can't drift — archiving is one of those operations
-/// with a tail (pins, recents, sync) that is easy to half-do.
-///
-/// Rows are re-read rather than passed in: the caller may be holding a
-/// Kundli from before an edit, and `update` writes the whole row.
-/// Charts already on the requested side are skipped, so an Undo that
-/// races a second archive doesn't churn `updated_at` for nothing.
-///
-/// No pingSoon: archiving changes neither number the device ping
-/// reports — an archived chart is still a saved chart.
-///
-/// Takes the ROOT [ProviderContainer], never a WidgetRef: the operation
-/// awaits a row write per chart, and both callers can outlive their
-/// widget mid-await — a bulk archive empties the view it was launched
-/// from, and the snackbar's Undo outlives everything by design. A
-/// WidgetRef used after its element is disposed throws ("Cannot use
-/// ref after the widget was disposed"); the root container lives as
-/// long as the app does. Callers grab it with
-/// `ProviderScope.containerOf(context, listen: false)` BEFORE any
-/// await.
 Future<void> setKundlisArchived(
   ProviderContainer container,
   Iterable<String> ids, {
@@ -943,46 +895,28 @@ Future<void> setKundlisArchived(
   }
   if (changed.isEmpty) return;
   if (archived) {
-    // The point of archiving is to stop seeing the chart, and both of
-    // these would keep showing it above the fold. Unarchiving does NOT
-    // undo them: a pin the user set months ago is not recoverable from
-    // here, and silently re-pinning would be a guess.
     container.read(pinnedKundlisProvider.notifier).removeAll(changed);
     container.read(recentKundlisProvider.notifier).forget(changed);
-    // Followed alerts are deliberately NOT dropped. Following is its own
-    // explicit opt-in ("tell me when this native's dasha turns"), and
-    // that request survives the chart leaving the roll call — unlike a
-    // delete, where the subject is gone.
   }
   container.invalidate(kundlisProvider);
   for (final id in changed) {
     container.invalidate(kundliByIdProvider(id));
   }
-  // The flag rides inside the row payload, so a plain push carries it —
-  // and `update` bumped updated_at, so LWW settles it on every device.
   container.read(syncServiceProvider)?.pushAll();
 }
 
-/// Opens a kundli and records the visit, so recency ordering reflects
-/// every entry point rather than just the list.
 void openKundli(BuildContext context, WidgetRef ref, String id) {
   ref.read(activeKundliIdProvider.notifier).state = id;
   ref.read(recentKundlisProvider.notifier).touch(id);
   context.push('/kundli/$id');
 }
 
-/// Initial-letter avatar. A shape is faster to re-find than a word, which
-/// is the whole point at 200 rows. Colour is derived from the name so it
-/// stays put across sorts and sessions; when photos land later they slot
-/// in here and the letter stays as the fallback.
 class KundliAvatar extends StatelessWidget {
   const KundliAvatar({super.key, required this.name, this.size = 40});
 
   final String name;
   final double size;
 
-  /// Drawn from the app palette rather than a generic rainbow, so a
-  /// screen full of avatars still reads as this app.
   static List<Color> _palette() => [
         KJColors.maroon,
         KJColors.forest,
@@ -993,9 +927,6 @@ class KundliAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = _palette();
-    // Sum of code units, not hashCode — Dart's String.hashCode is not
-    // guaranteed stable across runs, and a colour that changes on
-    // restart defeats the purpose.
     final seed = name.codeUnits.fold<int>(0, (a, b) => a + b);
     final color = palette[seed % palette.length];
     final letter = initialFor(name);
@@ -1027,8 +958,8 @@ class _KundliRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final selection = ref.watch(kundliMultiSelectProvider);
-    final selecting = selection != null;
-    final isSelected = selection?.contains(kundli.id) ?? false;
+    final selecting = selection!= null;
+    final isSelected = selection?.contains(kundli.id)?? false;
     final isPinned = ref.watch(pinnedKundlisProvider).contains(kundli.id);
     final isFollowed = ref.watch(followedKundlisProvider).contains(kundli.id);
     final compact = density == KundliDensity.compact;
@@ -1042,18 +973,18 @@ class _KundliRow extends ConsumerWidget {
     return Card(
       margin: const EdgeInsets.fromLTRB(KJSpace.lg, 0, KJSpace.lg, KJSpace.sm),
       color:
-          isSelected ? KJColors.maroon.withValues(alpha: KJTint.faint) : null,
+          isSelected? KJColors.maroon.withValues(alpha: KJTint.faint) : null,
       child: InkWell(
         borderRadius: KJRadius.all(KJRadius.lg),
         onLongPress: () =>
             ref.read(kundliMultiSelectProvider.notifier).state = {kundli.id},
         onTap: selecting
-            ? toggleSelection
+           ? toggleSelection
             : () => openKundli(context, ref, kundli.id),
         child: Padding(
           padding: EdgeInsets.symmetric(
               horizontal: KJSpace.md,
-              vertical: compact ? KJSpace.sm : KJSpace.md),
+              vertical: compact? KJSpace.sm : KJSpace.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1064,13 +995,13 @@ class _KundliRow extends ConsumerWidget {
                       padding: const EdgeInsets.only(right: KJSpace.sm),
                       child: Icon(
                         isSelected
-                            ? Icons.check_circle
+                           ? Icons.check_circle
                             : Icons.radio_button_unchecked,
                         size: KJIcon.lg,
-                        color: isSelected ? KJColors.maroon : KJColors.inkSoft,
+                        color: isSelected? KJColors.maroon : KJColors.inkSoft,
                       ),
                     ),
-                  KundliAvatar(name: kundli.name, size: compact ? 32 : 40),
+                  KundliAvatar(name: kundli.name, size: compact? 32 : 40),
                   KJSpace.gapW(KJSpace.md),
                   Expanded(
                     child: Column(
@@ -1081,9 +1012,9 @@ class _KundliRow extends ConsumerWidget {
                           kundli.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: KJTheme.serif(size: compact ? 15 : 17),
+                          style: KJTheme.serif(size: compact? 15 : 17),
                         ),
-                        if (!compact) ...[
+                        if (!compact)...[
                           const SizedBox(height: 2),
                           Text(
                             _secondaryLine(),
@@ -1114,24 +1045,21 @@ class _KundliRow extends ConsumerWidget {
                   KJSpace.gapW(KJSpace.sm),
                   KJTag(relationTagLabel(l10n, kundli.relationTag)),
                   KJSpace.gapW(KJSpace.sm),
-                  // Sync state as a glyph, not a chip: it's on every row,
-                  // so it has to be cheap in width even though it carries
-                  // real information (is this chart only on this device?).
                   Tooltip(
-                    message: kundli.syncEnabled ? l10n.synced : l10n.deviceOnly,
+                    message: kundli.syncEnabled? l10n.synced : l10n.deviceOnly,
                     child: Icon(
                       kundli.syncEnabled
-                          ? Icons.cloud_done_outlined
+                         ? Icons.cloud_done_outlined
                           : Icons.cloud_off_outlined,
                       size: KJIcon.sm,
                       color: kundli.syncEnabled
-                          ? KJColors.inkSoft
+                         ? KJColors.inkSoft
                           : KJColors.inkSoft.withValues(alpha: KJTint.dim),
                     ),
                   ),
                 ],
               ),
-              if (density == KundliDensity.detailed) ..._detail(context, ref),
+              if (density == KundliDensity.detailed)..._detail(context, ref),
             ],
           ),
         ),
@@ -1139,24 +1067,19 @@ class _KundliRow extends ConsumerWidget {
     );
   }
 
-  /// The note identifies a person far better than their birth stamp
-  /// ("Ramesh's daughter — marriage match" vs "12.03.1987 · 14:22"), so
-  /// it wins line two when there is one. Detailed density shows both.
   String _secondaryLine() {
     final note = kundli.note?.trim();
-    if (note != null && note.isNotEmpty) return note;
+    if (note!= null && note.isNotEmpty) return note;
     return KJDate.dateDotTime(kundli.toBirthData().localDateTime);
   }
 
   List<Widget> _detail(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final note = kundli.note?.trim();
-    // Only DETAILED pays for a snapshot, and only for rows actually
-    // built — the lazy list means offscreen kundlis compute nothing.
     final snapshot = ref.watch(snapshotProvider(kundli.id));
 
     return [
-      if (note != null && note.isNotEmpty)
+      if (note!= null && note.isNotEmpty)
         Padding(
           padding: const EdgeInsets.only(top: KJSpace.xs),
           child: Text(
@@ -1173,12 +1096,12 @@ class _KundliRow extends ConsumerWidget {
             data: (s) => KJTag('${l10n.labelLagna} ${s.lagnaSign.label(l10n)}',
                 maroon: true),
             loading: () => KJTag('${l10n.labelLagna} …'),
-            error: (_, __) => KJTag('${l10n.labelLagna} ?'),
+            error: (_, __) => KJTag('${l10n.labelLagna}?'),
           ),
           snapshot.when(
             data: (s) => KJTag('${l10n.planetMoon} ${s.moonSign.label(l10n)}'),
             loading: () => KJTag('${l10n.planetMoon} …'),
-            error: (_, __) => KJTag('${l10n.planetMoon} ?'),
+            error: (_, __) => KJTag('${l10n.planetMoon}?'),
           ),
           for (final label in kundli.labels) KJTag(label),
           if (kundli.isPrashna) KJTag(l10n.tagPrashna),
@@ -1190,8 +1113,6 @@ class _KundliRow extends ConsumerWidget {
   }
 }
 
-/// Pick an existing label or type a new one. Shared by the bulk action
-/// and the per-kundli editor so the two can't drift.
 Future<String?> showLabelPicker(BuildContext context,
     {required List<String> existing}) {
   final controller = TextEditingController();
@@ -1211,9 +1132,9 @@ Future<String?> showLabelPicker(BuildContext context,
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(hintText: l10n.klLabelHint),
               onSubmitted: (v) =>
-                  Navigator.pop(ctx, v.trim().isEmpty ? null : v.trim()),
+                  Navigator.pop(ctx, v.trim().isEmpty? null : v.trim()),
             ),
-            if (existing.isNotEmpty) ...[
+            if (existing.isNotEmpty)...[
               KJSpace.gap(KJSpace.lg),
               KJSectionLabel(l10n.klExistingLabels, padded: true),
               Wrap(
@@ -1236,7 +1157,7 @@ Future<String?> showLabelPicker(BuildContext context,
           TextButton(
             onPressed: () {
               final v = controller.text.trim();
-              Navigator.pop(ctx, v.isEmpty ? null : v);
+              Navigator.pop(ctx, v.isEmpty? null : v);
             },
             child: Text(l10n.add),
           ),

@@ -627,10 +627,12 @@ class _PlacePickerDialogState extends ConsumerState<_PlacePickerDialog> {
     _debounce = Timer(const Duration(milliseconds: 350), () async {
       try {
         final results = await ref.read(placeLookupProvider).search(q);
-        if (mounted) setState(() {
+        if (mounted) {
+          setState(() {
               _results = results;
               _searchFailed = false;
             });
+        }
       } catch (_) {
         // Offline / dead network: the geocoder throws (host lookup or
         // timeout). Show it inline instead of letting it escape the Timer
