@@ -358,7 +358,7 @@ class _PdfExportScreenState extends ConsumerState<PdfExportScreen> {
                   itemCount: entries.length,
                   // onReorderItem, not onReorder: it hands back a
                   // newIndex already adjusted for the removed item.
-                  onReorderItem: (oldIndex, newIndex) => _mutate(() =>
+                  onReorder: (oldIndex, newIndex) => _mutate(() =>
                       entries.insert(newIndex, entries.removeAt(oldIndex))),
                   itemBuilder: (context, i) {
                     final e = entries[i];

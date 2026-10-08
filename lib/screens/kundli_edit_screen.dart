@@ -614,7 +614,7 @@ class _KundliEditScreenState extends ConsumerState<KundliEditScreen> {
                       child: Text(context.l10n.signIn))
                   : Switch(
                       value: k.syncEnabled,
-                      activeThumbColor: KJColors.maroon,
+                      activeColor: KJColors.maroon,
                       onChanged: (v) async {
                         // Captured before the first await — context must not
                         // be used across suspension points, and the error
@@ -685,7 +685,7 @@ class _KundliEditScreenState extends ConsumerState<KundliEditScreen> {
                 subtitle: context.l10n.keAlertsSubtitle,
                 child: Switch(
                   value: ref.watch(followedKundlisProvider).contains(k.id),
-                  activeThumbColor: KJColors.maroon,
+                  activeColor: KJColors.maroon,
                   // Live-bound and immediate, like the dashboard's own
                   // follow toggle — NOT save-bound. Flipping it is the
                   // whole action; the app root listens to the follow-set

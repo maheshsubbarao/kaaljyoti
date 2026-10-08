@@ -611,7 +611,7 @@ class DashboardBody extends ConsumerWidget {
               // is unreadable at this size) — see the listener below.
               buildDefaultDragHandles: false,
               padding: const EdgeInsets.only(left: 16),
-              onReorderItem: (from, to) => _reorderViews(ref, views, from, to),
+              onReorder: (from, to) => _reorderViews(ref, views, from, to),
               children: [
                 for (var i = 0; i < views.length; i++)
                   ReorderableDelayedDragStartListener(
