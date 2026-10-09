@@ -30,17 +30,17 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "ndk.dir=$ANDROID_HOME/ndk/27.0.12077973" >> android/local.properties
           cat android/local.properties
-          SWEPH_FILE=$(find /home/runner -type f -name "build.gradle" -path "*sweph*" 2>/dev/null | head -n 1)
+          SWEPH_FILE=$(find /home/runner/.pub-cache -type f -path "*sweph-*/android/build.gradle"! -path "*example*" 2>/dev/null | head -n 1)
           echo "SWEPH_FILE=$SWEPH_FILE"
           if [ -f "$SWEPH_FILE" ]; then
             cat "$SWEPH_FILE"
             if! grep -q "ndkVersion" "$SWEPH_FILE"; then
               sed -i '/android {/a \ ndkVersion "27.0.12077973"' "$SWEPH_FILE"
-              echo "Patched OK"
+              echo "Patched!"
             fi
             cat "$SWEPH_FILE"
           else
-            echo "Sweph not found, skipping patch - NDK is installed so build should work"
+            echo "Not found, skipping"
           fi
 
       - run: flutter build apk --release --no-tree-shake-icons
