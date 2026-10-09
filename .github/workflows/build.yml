@@ -30,16 +30,17 @@ jobs:
           NDK_PATH=$ANDROID_HOME/ndk/$NDK_VER
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "ndk.dir=$NDK_PATH" >> android/local.properties
-          # Fix your app file (27 -> 28)
+          # Fix your app
           sed -i "s/27.0.12077973/$NDK_VER/g" android/app/build.gradle.kts || true
           sed -i "s/27.0.12077973/$NDK_VER/g" android/app/build.gradle || true
           sed -i "s/27.0.12077973/$NDK_VER/g" android/build.gradle.kts || true
-          sed -i "s/27.0.12077973/$NDK_VER/g" android/build.gradle || true
-          # Fix sweph file (28.7 -> 28)
-          SWEPH_FILE=$(find $HOME/.pub-cache -type f -name build.gradle | grep sweph | grep -v example | head -n 1)
-          sed -i "s/28.7.33676358/$NDK_VER/g" "$SWEPH_FILE" || true
-          sed -i "s/28.2.13676358/$NDK_VER/g" "$SWEPH_FILE" || true
-          sed -i "s/28.0.12433566/$NDK_VER/g" "$SWEPH_FILE" || true
+          # Fix sweph - force all files
+          echo "Fixing sweph..."
+          find $HOME/.pub-cache -type f -name "*.gradle" -exec sed -i "s/28.7.33676358/$NDK_VER/g" {} \; 2>/dev/null || true
+          find $HOME/.pub-cache -type f -name "*.gradle" -exec sed -i "s/27.0.12077973/$NDK_VER/g" {} \; 2>/dev/null || true
+          find $HOME/.pub-cache -type f -name "*.gradle.kts" -exec sed -i "s/28.7.33676358/$NDK_VER/g" {} \; 2>/dev/null || true
+          # Show result
+          grep -r "ndkVersion" $HOME/.pub-cache/hosted/pub.dev/sweph-* --include="*.gradle" || true
 
       - run: flutter build apk --release --no-tree-shake-icons
 
