@@ -13,10 +13,21 @@ jobs:
 
       - name: Setup NDK 27
         uses: nttld/setup-ndk@v1
+        id: setup-ndk
         with:
           ndk-version: r27
           add-to-path: true
           local-cache: true
+
+      - name: Force NDK for sweph
+        run: |
+          echo "NDK Path: ${{ steps.setup-ndk.outputs.ndk-path }}"
+          echo "ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+          echo "NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+          mkdir -p /usr/local/lib/android/sdk/ndk/
+          ln -sf ${{ steps.setup-ndk.outputs.ndk-path }} /usr/local/lib/android/sdk/ndk/27.0.12077973 || true
+          ls -la /usr/local/lib/android/sdk/ndk/
 
       - uses: subosito/flutter-action@v2
         with:
