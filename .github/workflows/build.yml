@@ -13,16 +13,11 @@ jobs:
 
       - name: Install NDK 27
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          ls $ANDROID_HOME/cmdline-tools/
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973"
           ls $ANDROID_HOME/ndk/
-          ls $ANDROID_HOME/ndk/27.0.12077973/ | head -n 20
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
           echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
-          echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
 
       - uses: subosito/flutter-action@v2
         with:
@@ -36,17 +31,25 @@ jobs:
         run: |
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "ndk.dir=$ANDROID_HOME/ndk/27.0.12077973" >> android/local.properties
-          echo "flutter.sdk=/opt/hostedtoolcache/flutter/stable-3.32.0-x64" >> android/local.properties
           cat android/local.properties
-          SWEPH=$(find $HOME -path "*sweph/android/build.gradle" 2>/dev/null | head -n 1)
-          if [ -z "$SWEPH" ]; then SWEPH=$(find /opt -path "*sweph/android/build.gradle" 2>/dev/null | head -n 1); fi
-          echo "SWEPH: $SWEPH"
-          cat "$SWEPH"
-          # Inject ndkVersion if missing
-          if! grep -q "ndkVersion" "$SWEPH"; then
-            sed -i '/android {/a \ ndkVersion "27.0.12077973"' "$SWEPH"
+          echo "--- Searching sweph ---"
+          # Pub cache can be in 2 places
+          ls /home/runner/.pub-cache/hosted/pub.dev/ | grep sweph || true
+          ls /opt/hostedtoolcache/flutter/ -R | grep -m 5 sweph || true
+          SWEPH_FILE=$(find /home/runner /opt -type f -path "*sweph/android/build.gradle" 2>/dev/null | head -n 1)
+          echo "SWEPH_FILE=$SWEPH_FILE"
+          if [ -f "$SWEPH_FILE" ]; then
+            echo "--- BEFORE ---"
+            cat "$SWEPH_FILE"
+            if! grep -q "ndkVersion" "$SWEPH_FILE"; then
+              sed -i '/android {/a \ ndkVersion "27.0.12077973"' "$SWEPH_FILE"
+              echo "Patched!"
+            fi
+            echo "--- AFTER ---"
+            cat "$SWEPH_FILE"
+          else
+            echo "SWEPH file not found, but NDK already installed, so build will still work!"
           fi
-          cat "$SWEPH"
 
       - run: flutter build apk --release --no-tree-shake-icons
 
