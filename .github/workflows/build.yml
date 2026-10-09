@@ -23,23 +23,32 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Fix NDK - STRONG FIX
+      - name: Force NDK 27 for ALL projects
         run: |
           NDK_VER=27.0.12077973
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "ndk.dir=$ANDROID_HOME/ndk/$NDK_VER" >> android/local.properties
-          cat android/local.properties
 
-          echo "Finding sweph..."
-          find ~ -type f -name "build.gradle" | grep sweph
+          # 1. Show sweph file before
+          echo "=== BEFORE ==="
+          cat $HOME/.pub-cache/hosted/pub.dev/sweph-*/android/build.gradle | grep ndk
 
-          # Fix ALL sweph files anywhere
-          find ~ -type f -path "*sweph*/android/build.gradle" -exec sed -i "s/28.7.33676358/$NDK_VER/g" {} \; -print
-          find ~ -type f -path "*sweph*/android/build.gradle" -exec sed -i "s/28.1.13356709/$NDK_VER/g" {} \; -print
-          find ~ -type f -path "*sweph*/android/build.gradle" -exec sed -i "s/28.2.13676358/$NDK_VER/g" {} \; -print
+          # 2. Try to fix sweph file with full path
+          for f in $(find $HOME -name build.gradle 2>/dev/null | xargs grep -l "28.7.33676358" 2>/dev/null); do
+            echo "Fixing $f"
+            sed -i "s/28.7.33676358/$NDK_VER/g" "$f"
+            sed -i "s/28.1.13356709/$NDK_VER/g" "$f"
+          done
 
-          echo "After fix:"
-          find ~ -type f -path "*sweph*/android/build.gradle" -exec grep -H ndkVersion {} \;
+          # 3. Show after
+          echo "=== AFTER ==="
+          cat $HOME/.pub-cache/hosted/pub.dev/sweph-*/android/build.gradle | grep ndk
+
+          # 4. MOST IMPORTANT - Add override to android/build.gradle
+          echo "" >> android/build.gradle
+          echo "subprojects { afterEvaluate { project -> if (project.hasProperty('android')) { project.android.ndkVersion = '$NDK_VER' } } }" >> android/build.gradle
+          echo "=== android/build.gradle tail ==="
+          tail -5 android/build.gradle
 
       - run: flutter build apk --release --no-tree-shake-icons
 
