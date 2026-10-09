@@ -11,13 +11,18 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup NDK 27
-        uses: nttld/setup-ndk@v1
-        id: setup-ndk
-        with:
-          ndk-version: r27
-          add-to-path: true
-          local-cache: true
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK 27.0.12077973 via sdkmanager
+        run: |
+          sdkmanager --install "ndk;27.0.12077973"
+          echo "NDK installed to:"
+          ls -la $ANDROID_HOME/ndk/
+          ls -la $ANDROID_HOME/ndk/27.0.12077973/ | head -n 20
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
+          echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
 
       - uses: subosito/flutter-action@v2
         with:
@@ -27,24 +32,24 @@ jobs:
 
       - run: flutter pub get
 
-      - name: PATCH sweph NDK - FINAL FIX
+      - name: PATCH sweph - show file
         run: |
-          echo "=== Finding sweph build.gradle ==="
-          find $HOME -name "build.gradle" | grep sweph
-          SWEPH_FILE=$(find $HOME -path "*sweph*/android/build.gradle" | head -n 1)
-          echo "Found: $SWEPH_FILE"
-          echo "=== BEFORE ==="
-          cat "$SWEPH_FILE"
-          # Add ndkVersion inside android block
-          sed -i "s/android {/android {\n ndkVersion = \"27.0.12077973\"/" "$SWEPH_FILE"
-          echo "=== AFTER ==="
-          cat "$SWEPH_FILE"
-          # Also force SDK NDK folder
-          NDK_PATH=${{ steps.setup-ndk.outputs.ndk-path }}
-          echo "NDK_PATH=$NDK_PATH"
-          sudo mkdir -p /usr/local/lib/android/sdk/ndk/27.0.12077973
-          sudo cp -r $NDK_PATH/* /usr/local/lib/android/sdk/ndk/27.0.12077973/ || true
-          ls /usr/local/lib/android/sdk/ndk/
+          echo "PUB_CACHE locations:"
+          find /home -type d -name "sweph*" 2>/dev/null | head -n 20
+          find /opt -type d -name "sweph*" 2>/dev/null | head -n 20
+          SWEPH=$(find $HOME /opt -path "*sweph/android/build.gradle" 2>/dev/null | head -n 1)
+          echo "SWEPH file: $SWEPH"
+          cat "$SWEPH"
+          # Create local.properties with NDK path
+          echo "ndk.dir=$ANDROID_HOME/ndk/27.0.12077973" >> android/local.properties
+          echo "sdk.dir=$ANDROID_HOME" >> android/local.properties
+          cat android/local.properties
+          # Also force ndkVersion into sweph file
+          sed -i 's/compileSdkVersion.*/compileSdkVersion 34\n ndkVersion "27.0.12077973"/' "$SWEPH" || true
+          # If above failed, just inject after android {
+          grep -q 'ndkVersion' "$SWEPH" || sed -i '/android {/a \ ndkVersion "27.0.12077973"' "$SWEPH"
+          echo "--- AFTER PATCH ---"
+          cat "$SWEPH"
 
       - run: flutter build apk --release --no-tree-shake-icons
 
