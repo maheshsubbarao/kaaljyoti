@@ -68,3 +68,7 @@
 -keep class io.flutter.** { *; }
 -keep class io.flutter.plugins.** { *; }
 -dontwarn io.flutter.embedding.**
+
+# ---- KaalJyoti Main Activity - FIX FOR BLINK CRASH ----
+-keep class com.kaaljyoti.MainActivity { *; }
+-keep class com.kaaljyoti.** { *; }
