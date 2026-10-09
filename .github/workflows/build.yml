@@ -15,8 +15,7 @@ jobs:
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;28.1.13356709"
-          NDK_PATH=$ANDROID_HOME/ndk/28.1.13356709
-          echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/28.1.13356709" >> $GITHUB_ENV
 
       - uses: subosito/flutter-action@v2
         with:
@@ -27,13 +26,20 @@ jobs:
 
       - name: Fix NDK Problem
         run: |
-          NDK_PATH=$ANDROID_HOME/ndk/28.1.13356709
           NDK_VER=28.1.13356709
+          NDK_PATH=$ANDROID_HOME/ndk/$NDK_VER
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "ndk.dir=$NDK_PATH" >> android/local.properties
+          # Fix your app file (27 -> 28)
+          sed -i "s/27.0.12077973/$NDK_VER/g" android/app/build.gradle.kts || true
+          sed -i "s/27.0.12077973/$NDK_VER/g" android/app/build.gradle || true
+          sed -i "s/27.0.12077973/$NDK_VER/g" android/build.gradle.kts || true
+          sed -i "s/27.0.12077973/$NDK_VER/g" android/build.gradle || true
+          # Fix sweph file (28.7 -> 28)
           SWEPH_FILE=$(find $HOME/.pub-cache -type f -name build.gradle | grep sweph | grep -v example | head -n 1)
           sed -i "s/28.7.33676358/$NDK_VER/g" "$SWEPH_FILE" || true
-          sed -i "s/ndkVersion.*/ndkVersion \"$NDK_VER\"/" "$SWEPH_FILE" || true
+          sed -i "s/28.2.13676358/$NDK_VER/g" "$SWEPH_FILE" || true
+          sed -i "s/28.0.12433566/$NDK_VER/g" "$SWEPH_FILE" || true
 
       - run: flutter build apk --release --no-tree-shake-icons
 
