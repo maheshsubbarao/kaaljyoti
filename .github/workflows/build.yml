@@ -11,15 +11,15 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install NDK 27.0.12077973 via sdkmanager
+      - name: Install NDK 27
         run: |
-          sdkmanager --install "ndk;27.0.12077973"
-          echo "NDK installed to:"
-          ls -la $ANDROID_HOME/ndk/
-          ls -la $ANDROID_HOME/ndk/27.0.12077973/ | head -n 20
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls $ANDROID_HOME/cmdline-tools/
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973"
+          ls $ANDROID_HOME/ndk/
+          ls $ANDROID_HOME/ndk/27.0.12077973/ | head -n 20
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
           echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
           echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
@@ -32,23 +32,20 @@ jobs:
 
       - run: flutter pub get
 
-      - name: PATCH sweph - show file
+      - name: Patch sweph and local.properties
         run: |
-          echo "PUB_CACHE locations:"
-          find /home -type d -name "sweph*" 2>/dev/null | head -n 20
-          find /opt -type d -name "sweph*" 2>/dev/null | head -n 20
-          SWEPH=$(find $HOME /opt -path "*sweph/android/build.gradle" 2>/dev/null | head -n 1)
-          echo "SWEPH file: $SWEPH"
-          cat "$SWEPH"
-          # Create local.properties with NDK path
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "ndk.dir=$ANDROID_HOME/ndk/27.0.12077973" >> android/local.properties
-          echo "sdk.dir=$ANDROID_HOME" >> android/local.properties
+          echo "flutter.sdk=/opt/hostedtoolcache/flutter/stable-3.32.0-x64" >> android/local.properties
           cat android/local.properties
-          # Also force ndkVersion into sweph file
-          sed -i 's/compileSdkVersion.*/compileSdkVersion 34\n ndkVersion "27.0.12077973"/' "$SWEPH" || true
-          # If above failed, just inject after android {
-          grep -q 'ndkVersion' "$SWEPH" || sed -i '/android {/a \ ndkVersion "27.0.12077973"' "$SWEPH"
-          echo "--- AFTER PATCH ---"
+          SWEPH=$(find $HOME -path "*sweph/android/build.gradle" 2>/dev/null | head -n 1)
+          if [ -z "$SWEPH" ]; then SWEPH=$(find /opt -path "*sweph/android/build.gradle" 2>/dev/null | head -n 1); fi
+          echo "SWEPH: $SWEPH"
+          cat "$SWEPH"
+          # Inject ndkVersion if missing
+          if! grep -q "ndkVersion" "$SWEPH"; then
+            sed -i '/android {/a \ ndkVersion "27.0.12077973"' "$SWEPH"
+          fi
           cat "$SWEPH"
 
       - run: flutter build apk --release --no-tree-shake-icons
