@@ -11,10 +11,11 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install NDK
+      - name: Install NDK 27
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;28.1.13356709"
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973"
+          ls $ANDROID_HOME/ndk/
 
       - uses: subosito/flutter-action@v2
         with:
@@ -23,25 +24,19 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Fix NDK Problem
+      - name: Fix NDK
         run: |
-          NDK_VER=28.1.13356709
-          # 1. Only sdk.dir, NO ndk.dir - this removes the fight
+          NDK_VER=27.0.12077973
+          NDK_PATH=$ANDROID_HOME/ndk/$NDK_VER
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          echo "ndk.dir=$NDK_PATH" >> android/local.properties
           cat android/local.properties
-          # 2. Find sweph folder directly
-          SWEPH_FOLDER=$(ls -d $HOME/.pub-cache/hosted/pub.dev/sweph-* | head -n 1)
-          echo "Sweph folder: $SWEPH_FOLDER"
-          cat $SWEPH_FOLDER/android/build.gradle
-          # 3. Change sweph file to 28.1
-          sed -i "s/28.7.33676358/$NDK_VER/g" $SWEPH_FOLDER/android/build.gradle
-          sed -i "s/27.0.12077973/$NDK_VER/g" $SWEPH_FOLDER/android/build.gradle
-          cat $SWEPH_FOLDER/android/build.gradle
-          # 4. Change your app file to 28.1 also
-          sed -i "s/27.0.12077973/$NDK_VER/g" android/app/build.gradle.kts || true
-          sed -i "s/27.0.12077973/$NDK_VER/g" android/build.gradle.kts || true
-          sed -i "s/27.0.12077973/$NDK_VER/g" android/app/build.gradle || true
-          sed -i "s/28.7.33676358/$NDK_VER/g" android/app/build.gradle.kts || true
+          SWEPH=$(find $HOME/.pub-cache -type d -name "sweph-*" | head -n 1)
+          echo "Fixing $SWEPH"
+          sed -i "s/28.7.33676358/$NDK_VER/g" $SWEPH/android/build.gradle
+          sed -i "s/28.1.13356709/$NDK_VER/g" $SWEPH/android/build.gradle
+          sed -i "s/28.2.13676358/$NDK_VER/g" $SWEPH/android/build.gradle
+          cat $SWEPH/android/build.gradle | grep ndk
 
       - run: flutter build apk --release --no-tree-shake-icons
 
