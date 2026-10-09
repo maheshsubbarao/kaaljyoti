@@ -11,38 +11,29 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install NDK 27
+      - name: Install NDK
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973"
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;28.1.13356709"
+          NDK_PATH=$ANDROID_HOME/ndk/28.1.13356709
+          echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
 
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.0'
           channel: 'stable'
-          cache: true
 
       - run: flutter pub get
 
-      - name: Patch sweph and local.properties
+      - name: Fix NDK Problem
         run: |
+          NDK_PATH=$ANDROID_HOME/ndk/28.1.13356709
+          NDK_VER=28.1.13356709
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-          echo "ndk.dir=$ANDROID_HOME/ndk/27.0.12077973" >> android/local.properties
+          echo "ndk.dir=$NDK_PATH" >> android/local.properties
           SWEPH_FILE=$(find $HOME/.pub-cache -type f -name build.gradle | grep sweph | grep -v example | head -n 1)
-          echo "File: $SWEPH_FILE"
-          if [ -f "$SWEPH_FILE" ]; then
-            cat "$SWEPH_FILE"
-            # Check if already has ndkVersion
-            grep -q ndkVersion "$SWEPH_FILE" && echo "already patched" || echo "needs patch"
-            if grep -q ndkVersion "$SWEPH_FILE"; then
-              echo "Already has ndkVersion, skip"
-            else
-              sed -i 's/android {/android {\n ndkVersion "27.0.12077973"/' "$SWEPH_FILE"
-              echo "Patched successfully"
-            fi
-            cat "$SWEPH_FILE"
-          fi
+          sed -i "s/28.7.33676358/$NDK_VER/g" "$SWEPH_FILE" || true
+          sed -i "s/ndkVersion.*/ndkVersion \"$NDK_VER\"/" "$SWEPH_FILE" || true
 
       - run: flutter build apk --release --no-tree-shake-icons
 
