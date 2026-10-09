@@ -81,7 +81,7 @@ subprojects {
                 // the app's own minSdk IS 24 (flutter.minSdkVersion), so no
                 // older device can install; the merged manifest still uses
                 // the app's minSdk, this only affects plugin compilation.
-                ndkVersion = "28.2.13676358"
+                ndkVersion = "28.7.33676358"
                 if ((defaultConfig.minSdkVersion?.apiLevel ?: 0) < 24) {
                     defaultConfig.minSdkVersion(24)
                 }
