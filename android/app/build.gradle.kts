@@ -67,3 +67,14 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation("com.google.android.gms:play-services-auth-blockstore:16.4.0")
 }
+
+subprojects {
+    afterEvaluate {
+        if (project.name == "sweph") {
+            val androidExt = extensions.findByName("android")
+            if (androidExt is com.android.build.gradle.LibraryExtension) {
+                androidExt.ndkVersion = "27.0.12077973"
+            }
+        }
+    }
+}
