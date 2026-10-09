@@ -160,7 +160,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<int>(
-                    initialValue: month,
+                    value: month,
                     decoration:
                         InputDecoration(labelText: ctx.l10n.dfMonth),
                     isExpanded: true,
