@@ -19,16 +19,6 @@ jobs:
           add-to-path: true
           local-cache: true
 
-      - name: Force NDK for sweph
-        run: |
-          echo "NDK Path: ${{ steps.setup-ndk.outputs.ndk-path }}"
-          echo "ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
-          echo "NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
-          mkdir -p /usr/local/lib/android/sdk/ndk/
-          ln -sf ${{ steps.setup-ndk.outputs.ndk-path }} /usr/local/lib/android/sdk/ndk/27.0.12077973 || true
-          ls -la /usr/local/lib/android/sdk/ndk/
-
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.0'
@@ -36,6 +26,25 @@ jobs:
           cache: true
 
       - run: flutter pub get
+
+      - name: PATCH sweph NDK - FINAL FIX
+        run: |
+          echo "=== Finding sweph build.gradle ==="
+          find $HOME -name "build.gradle" | grep sweph
+          SWEPH_FILE=$(find $HOME -path "*sweph*/android/build.gradle" | head -n 1)
+          echo "Found: $SWEPH_FILE"
+          echo "=== BEFORE ==="
+          cat "$SWEPH_FILE"
+          # Add ndkVersion inside android block
+          sed -i "s/android {/android {\n ndkVersion = \"27.0.12077973\"/" "$SWEPH_FILE"
+          echo "=== AFTER ==="
+          cat "$SWEPH_FILE"
+          # Also force SDK NDK folder
+          NDK_PATH=${{ steps.setup-ndk.outputs.ndk-path }}
+          echo "NDK_PATH=$NDK_PATH"
+          sudo mkdir -p /usr/local/lib/android/sdk/ndk/27.0.12077973
+          sudo cp -r $NDK_PATH/* /usr/local/lib/android/sdk/ndk/27.0.12077973/ || true
+          ls /usr/local/lib/android/sdk/ndk/
 
       - run: flutter build apk --release --no-tree-shake-icons
 
