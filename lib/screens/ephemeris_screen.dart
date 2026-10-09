@@ -382,7 +382,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
                 // The app default resolves async after first build; the
                 // key remounts the field so initialValue takes effect.
                 key: ValueKey(ayanamsaId),
-                initialValue: ayanamsaId,
+                value: ayanamsaId,
                 decoration: InputDecoration(
                   labelText: l10n.beSectionAyanamsa,
                   isDense: true,
