@@ -13,6 +13,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
+    ndkVersion = "26.3.11579264"
     namespace = "com.kaaljyoti"
     compileSdk = flutter.compileSdkVersion
     // FIX: Pin to stable NDK 26 that GitHub can download. 27.0.12077973 zip is broken on CI
