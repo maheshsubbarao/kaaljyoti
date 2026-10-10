@@ -356,7 +356,7 @@ class _PdfExportScreenState extends ConsumerState<PdfExportScreen> {
                   physics: const NeverScrollableScrollPhysics(),
                   buildDefaultDragHandles: false,
                   itemCount: entries.length,
-                  // onReorderItem, not onReorder: it hands back a
+                  // onReorder, not onReorder: it hands back a
                   // newIndex already adjusted for the removed item.
                   onReorder: (oldIndex, newIndex) => _mutate(() =>
                       entries.insert(newIndex, entries.removeAt(oldIndex))),

@@ -612,7 +612,7 @@ class DashboardBody extends ConsumerWidget {
               // is unreadable at this size) — see the listener below.
               buildDefaultDragHandles: false,
               padding: const EdgeInsets.only(left: 16),
-              onReorderItem: (from, to) => _reorderViews(ref, views, from, to),
+              onReorder: (from, to) => _reorderViews(ref, views, from, to),
               children: [
                 for (var i = 0; i < views.length; i++)
                   ReorderableDelayedDragStartListener(
@@ -658,7 +658,7 @@ class DashboardBody extends ConsumerWidget {
 
   /// Commit a chip drag. Positions are global (views are shared by every
   /// kundli), so this writes through immediately rather than holding an
-  /// optimistic local order. [to] is already post-removal (onReorderItem
+  /// optimistic local order. [to] is already post-removal (onReorder
   /// guarantees that, unlike the deprecated onReorder), so the moved id
   /// drops straight in.
   Future<void> _reorderViews(
