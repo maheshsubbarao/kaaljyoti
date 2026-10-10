@@ -41,7 +41,7 @@ android {
         }
     }
 
-        buildTypes {
+    buildTypes {
         release {
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
@@ -50,8 +50,6 @@ android {
             }
             isMinifyEnabled = false
             isShrinkResources = false
-            
-            )
         }
     }
 }
