@@ -13,7 +13,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    ndkVersion = "27.0.12077973"
+    ndkVersion = "26.1.10909125"
     namespace = "com.kaaljyoti"
     compileSdk = flutter.compileSdkVersion
     compileOptions {
@@ -72,8 +72,7 @@ subprojects {
         if (project.name == "sweph") {
             val androidExt = extensions.findByName("android")
             if (androidExt is com.android.build.gradle.LibraryExtension) {
-                androidExt.ndkVersion = "27.0.12077973"
-                androidExt.defaultConfig.externalNativeBuild.cmake.cppFlags.add("-Doff_t64=off64_t")
+                androidExt.ndkVersion = "26.1.10909125"
             }
         }
     }
