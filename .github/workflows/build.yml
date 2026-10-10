@@ -28,33 +28,38 @@ jobs:
           NDK_VER=26.1.10909125
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "ndk.dir=$ANDROID_HOME/ndk/$NDK_VER" >> android/local.properties
-
           echo "android.ndk.suppressMinSdkVersionError=21" >> android/gradle.properties
 
-          # FIX ALL sweph files - this is the new fix for :jni error
-          echo "Fixing all sweph gradle files..."
-          find $HOME/.pub-cache -type f -name "*.gradle" -path "*sweph*" 2>/dev/null | while read f; do
-            echo "Fixing $f"
-            sed -i "s/28.7.33676358/$NDK_VER/g" "$f"
-            sed -i "s/28.1.13356709/$NDK_VER/g" "$f"
-            sed -i "s/27.0.12077973/$NDK_VER/g" "$f"
-            sed -i "s/ndkVersion = \".*\"/ndkVersion = \"$NDK_VER\"/g" "$f"
+          echo "=== Searching for ALL build.gradle with 28.7 ==="
+          find $HOME -type f -name "build.gradle" 2>/dev/null | xargs grep -l "28.7.33676358" 2>/dev/null || echo "No 28.7 file found in first search"
+          find $HOME -type f -name "build.gradle" 2>/dev/null -exec grep -l "28.7" {} \; 2>/dev/null
+
+          echo "=== Patching EVERY build.gradle in HOME ==="
+          find $HOME -type f -name "build.gradle" 2>/dev/null | while read f; do
+            if grep -q "28.7.33676358" "$f" 2>/dev/null; then
+              echo "PATCHING $f"
+              sed -i "s/28.7.33676358/$NDK_VER/g" "$f"
+            fi
+            if grep -q "ndkVersion" "$f" 2>/dev/null; then
+              # Force any ndkVersion to 26
+              sed -i "s/ndkVersion = \".*\"/ndkVersion = \"$NDK_VER\"/g" "$f"
+              sed -i "s/ndkVersion \".*\"/ndkVersion \"$NDK_VER\"/g" "$f"
+            fi
           done
 
-          # Also fix jni folder build.gradle if exists
-          find $HOME/.pub-cache -path "*sweph*/jni*" -name "*.gradle" 2>/dev/null -exec sed -i "s/28.7.33676358/$NDK_VER/g" {} \;
-          find $HOME/.pub-cache -path "*sweph*/jni*" -name "*.gradle" 2>/dev/null -exec sed -i "s/28.*/$NDK_VER/g" {} \; || true
+          echo "=== Also patching pub-cache git folder specifically ==="
+          find $HOME/.pub-cache -type f -name "*.gradle" 2>/dev/null | xargs sed -i "s/28.7.33676358/$NDK_VER/g" 2>/dev/null || true
+          find $HOME -path "*sweph*" -name "*.gradle" 2>/dev/null | xargs sed -i "s/28.7.33676358/$NDK_VER/g" 2>/dev/null || true
 
-          # Patch C files off_t64 -> off64_t
-          echo "Patching C files..."
-          for src in $(find $HOME/.pub-cache -path "*sweph*/native/sweph/src/*.c" 2>/dev/null); do
+          echo "=== Patching C files ==="
+          find $HOME -path "*sweph*/native/sweph/src/*.c" 2>/dev/null | while read src; do
+            echo "Patching $src"
             sed -i "s/off_t64/off64_t/g" "$src"
           done
 
-          # Verify
-          grep -R "28.7.33676358" $HOME/.pub-cache/hosted/pub.dev/sweph-* 2>/dev/null || echo "All 28.7 removed - OK"
-          cat $HOME/.pub-cache/hosted/pub.dev/sweph-*/android/build.gradle | grep ndkVersion
-          find $HOME/.pub-cache/hosted/pub.dev/sweph-* -name "build.gradle" -exec grep -H "ndkVersion" {} \;
+          echo "=== Verify fix ==="
+          find $HOME -type f -name "build.gradle" 2>/dev/null | xargs grep -n "28.7" 2>/dev/null || echo "SUCCESS: No 28.7 left anywhere"
+          find $HOME/.pub-cache -name "build.gradle" -path "*sweph*" -exec grep -H "ndkVersion" {} \; 2>/dev/null
 
       - run: flutter build apk --release --no-tree-shake-icons
 
