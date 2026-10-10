@@ -11,10 +11,10 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install NDK 26 and 28
+      - name: Install NDK 26, 27 and 28
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.1.10909125" "ndk;28.1.13356709"
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.1.10909125" "ndk;27.0.12077973" "ndk;28.1.13356709"
           ls $ANDROID_HOME/ndk/
 
       - uses: subosito/flutter-action@v2
@@ -26,19 +26,12 @@ jobs:
 
       - name: Fix NDK + sweph off_t64 error
         run: |
-          # DO NOT set ndk.dir - this was causing CXX1104 error
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-          cat android/local.properties
-
-          echo "android.ndk.suppressMinSdkVersionError=21" >> android/gradle.properties
-
           echo "Patching C files off_t64 -> off64_t"
           find $HOME -path "*sweph*/native/sweph/src/*.c" 2>/dev/null | while read src; do
-            echo "Patching $src"
             sed -i "s/off_t64/off64_t/g" "$src"
           done
-
-          echo "Patching sweph minSdk 16->21 to allow build"
+          echo "Patching minSdk 16->21"
           find $HOME -type f -name "build.gradle" -path "*sweph*" 2>/dev/null | while read f; do
             sed -i "s/minSdkVersion 16/minSdkVersion 21/g" "$f"
             sed -i "s/minSdk 16/minSdk 21/g" "$f"
