@@ -3,6 +3,10 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.0.12077973
+      ANDROID_NDK_ROOT: /usr/local/lib/android/sdk/ndk/27.0.12077973
+      NDK_HOME: /usr/local/lib/android/sdk/ndk/27.0.12077973
     steps:
       - uses: actions/checkout@v4
 
@@ -18,28 +22,44 @@ jobs:
 
       - name: Install NDK 27
         run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973" "ndk;26.1.10909125"
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973"
           ls $ANDROID_HOME/ndk/
-          cat $ANDROID_HOME/ndk/27.0.12077973/source.properties
+          echo "NDK installed at $ANDROID_HOME/ndk/27.0.12077973"
+          ls $ANDROID_HOME/ndk/27.0.12077973/ | head -20
 
       - run: flutter pub get
 
-      - name: FIX - Remove ndkVersion + off_t64
+      - name: FIX NDK + sweph for real
         run: |
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-          echo "Searching gradle files with ndkVersion..."
-          find $HOME -name "build.gradle" 2>/dev/null | xargs grep -l "ndkVersion" | head -20
-          find $HOME -name "build.gradle" 2>/dev/null | while read f; do
-            if grep -q "ndkVersion" "$f"; then
-              echo "Fixing $f"
-              sed -i '/ndkVersion/d' "$f"
+          echo "ndk.dir=$ANDROID_HOME/ndk/27.0.12077973" >> android/local.properties
+          cat android/local.properties
+
+          PUB_CACHE=$(find $HOME -type d -name "sweph*" | head -1)
+          echo "PUB CACHE sweph path: $PUB_CACHE"
+          find $HOME/.pub-cache -name "build.gradle" | grep sweph | head -20
+
+          # Find ALL build.gradle and force remove ndkVersion + force ndk to 27
+          for f in $(find $HOME -name "build.gradle" 2>/dev/null); do
+            if grep -q "ndkVersion\|NDK" "$f"; then
+              echo "Patching $f"
+              sed -i '/ndkVersion/d' "$f" || true
+              # Also remove any ndk block if needed
             fi
           done
-          echo "Patch off_t64"
-          find $HOME -name "*.c" 2>/dev/null | xargs sed -i "s/off_t64/off64_t/g" 2>/dev/null || true
-          echo "Patch minSdk"
-          find $HOME -name "build.gradle" 2>/dev/null | xargs sed -i "s/minSdkVersion 16/minSdkVersion 21/g" 2>/dev/null || true
+
+          # Patch C files
+          find $HOME/.pub-cache -name "*.c" 2>/dev/null -exec sed -i "s/off_t64/off64_t/g" {} \; || true
+
+          # Patch minSdk 16->21
+          find $HOME/.pub-cache -name "build.gradle" 2>/dev/null -exec sed -i "s/minSdkVersion 16/minSdkVersion 21/g" {} \; || true
+          find $HOME/.pub-cache -name "build.gradle" 2>/dev/null -exec sed -i "s/minSdk 16/minSdk 21/g" {} \; || true
+
+          echo "=== After patch, check jni build.gradle ==="
+          cat $HOME/.pub-cache/hosted/pub.dev/sweph-*/android/build.gradle 2>/dev/null | head -100 || true
+          cat $HOME/.pub-cache/hosted/pub.dev/sweph-*/android/jni/build.gradle 2>/dev/null | head -100 || true
 
       - run: flutter build apk --release --no-tree-shake-icons
 
