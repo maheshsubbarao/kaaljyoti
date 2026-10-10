@@ -28,6 +28,7 @@ import '../core/theme/type_scale.dart';
 import '../data/models.dart';
 import '../data/settings_repository.dart';
 import '../l10n/astro_l10n.dart';
+import '../services/jyotish_import_service.dart';
 import '../services/location_service.dart';
 import '../state/providers.dart';
 import '../ui/common.dart';
@@ -45,6 +46,60 @@ const _sectionHeaderThreshold = 30;
 
 /// How many charts the recents strip shows.
 const _recentsShown = 8;
+/// Import JyotishAppCharts.txt - Jan=0 fixed to Jan=1
+Future<void> importJyotishCharts(BuildContext context, WidgetRef ref) async {
+  final l10n = context.l10n;
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.showSnackBar(const SnackBar(content: Text('Reading JyotishAppCharts.txt...')));
+
+  try {
+    final charts = await JyotishImportService.loadFromAssets();
+    if (charts.isEmpty) {
+      messenger.showSnackBar(const SnackBar(content: Text('No charts found in file')));
+      return;
+    }
+
+    // Confirm dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Import ${charts.length} Charts?'),
+        content: Text(
+          'First: ${charts.first.name} - ${charts.first.day}/${charts.first.month}/${charts.first.year}\n'
+          'Month fixed: Jan=0 -> 1 (your note)\n'
+          'This will add all charts to your list.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.l10n.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Import All')),
+        ],
+      ),
+    );
+    if (confirmed!= true) return;
+
+    final repo = ref.read(kundliRepoProvider);
+    int count = 0;
+    for (final c in charts) {
+      // Avoid duplicates by name + birth date
+      // Create kundli using your repo
+      await repo.create(
+        name: c.name,
+        birthUtc: c.birthUtc,
+        latitude: c.latitude,
+        longitude: c.longitude,
+        timezoneName: 'Asia/Kolkata',
+        utcOffsetMinutes: c.tzOffsetMinutes,
+        placeName: c.place,
+        relationTag: 'Imported',
+      );
+      count++;
+    }
+    ref.invalidate(kundlisProvider);
+    messenger.showSnackBar(SnackBar(content: Text('$count charts imported! Jan=0 fixed.')));
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
+  }
+}
 
 class KundliListScreen extends ConsumerWidget {
   const KundliListScreen({super.key});
@@ -62,7 +117,12 @@ class KundliListScreen extends ConsumerWidget {
           ? _selectAppBar(context, ref, selection)
           : AppBar(
               title: Text(l10n.kundlisTitle),
-              actions: [
+                            actions: [
+                IconButton(
+                  icon: const Icon(Icons.upload_file),
+                  tooltip: 'Import JyotishAppCharts.txt',
+                  onPressed: () => importJyotishCharts(context, ref),
+                ),
                 const _ListOptionsButton(),
                 IconButton(
                   icon: const Icon(Icons.notifications_none),
