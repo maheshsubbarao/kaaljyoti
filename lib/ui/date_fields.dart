@@ -106,8 +106,8 @@ class _DateFieldsRowState extends State<DateFieldsRow> {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: DropdownButtonFormField<int>(
-            initialValue: _month,
+          child: DropdownButtonFormField(
+                 value: _month,
             decoration: InputDecoration(labelText: l10n.dfMonth),
             isExpanded: true,
             items: [
