@@ -17,7 +17,7 @@ dependencies:
   sweph:
     git:
       url: https://github.com/vm75/sweph.dart.git
-      ref: v4.1.0+2.10.3
+      ref: v4.0.0+2.10.3
   sqflite_sqlcipher: ^3.1.0
   flutter_secure_storage: ^9.2.2
   path_provider: ^2.1.3
