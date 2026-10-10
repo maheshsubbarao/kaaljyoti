@@ -6,15 +6,12 @@ jobs:
     env:
       ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.0.12077973
       ANDROID_NDK_ROOT: /usr/local/lib/android/sdk/ndk/27.0.12077973
-      NDK_HOME: /usr/local/lib/android/sdk/ndk/27.0.12077973
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
-
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.6'
@@ -22,44 +19,32 @@ jobs:
 
       - name: Install NDK 27
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973"
           ls $ANDROID_HOME/ndk/
-          echo "NDK installed at $ANDROID_HOME/ndk/27.0.12077973"
-          ls $ANDROID_HOME/ndk/27.0.12077973/ | head -20
 
       - run: flutter pub get
 
-      - name: FIX NDK + sweph for real
+      - name: FIX NDK version mismatch
         run: |
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "ndk.dir=$ANDROID_HOME/ndk/27.0.12077973" >> android/local.properties
-          cat android/local.properties
 
-          PUB_CACHE=$(find $HOME -type d -name "sweph*" | head -1)
-          echo "PUB CACHE sweph path: $PUB_CACHE"
-          find $HOME/.pub-cache -name "build.gradle" | grep sweph | head -20
+          # Fix YOUR project's ndkVersion 26 -> 27
+          echo "Fixing android/build.gradle.kts and app/build.gradle.kts"
+          sed -i 's/26.1.10909125/27.0.12077973/g' android/build.gradle.kts || true
+          sed -i 's/26.1.10909125/27.0.12077973/g' android/app/build.gradle.kts || true
+          sed -i 's/26.1.10909125/27.0.12077973/g' android/app/build.gradle || true
+          sed -i 's/26.1.10909125/27.0.12077973/g' android/build.gradle || true
 
-          # Find ALL build.gradle and force remove ndkVersion + force ndk to 27
-          for f in $(find $HOME -name "build.gradle" 2>/dev/null); do
-            if grep -q "ndkVersion\|NDK" "$f"; then
-              echo "Patching $f"
-              sed -i '/ndkVersion/d' "$f" || true
-              # Also remove any ndk block if needed
-            fi
-          done
+          # Also fix any plugin that still forces 26
+          find $HOME/.pub-cache -name "build.gradle" -o -name "build.gradle.kts" | xargs sed -i 's/26.1.10909125/27.0.12077973/g' 2>/dev/null || true
 
-          # Patch C files
-          find $HOME/.pub-cache -name "*.c" 2>/dev/null -exec sed -i "s/off_t64/off64_t/g" {} \; || true
+          # Fix sweph C code
+          find $HOME/.pub-cache -name "*.c" -exec sed -i "s/off_t64/off64_t/g" {} \; 2>/dev/null || true
+          find $HOME/.pub-cache -name "build.gradle" -exec sed -i "s/minSdkVersion 16/minSdkVersion 21/g" {} \; 2>/dev/null || true
 
-          # Patch minSdk 16->21
-          find $HOME/.pub-cache -name "build.gradle" 2>/dev/null -exec sed -i "s/minSdkVersion 16/minSdkVersion 21/g" {} \; || true
-          find $HOME/.pub-cache -name "build.gradle" 2>/dev/null -exec sed -i "s/minSdk 16/minSdk 21/g" {} \; || true
-
-          echo "=== After patch, check jni build.gradle ==="
-          cat $HOME/.pub-cache/hosted/pub.dev/sweph-*/android/build.gradle 2>/dev/null | head -100 || true
-          cat $HOME/.pub-cache/hosted/pub.dev/sweph-*/android/jni/build.gradle 2>/dev/null | head -100 || true
+          cat android/app/build.gradle.kts | grep ndkVersion
 
       - run: flutter build apk --release --no-tree-shake-icons
 
