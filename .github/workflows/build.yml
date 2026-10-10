@@ -16,36 +16,30 @@ jobs:
           flutter-version: '3.35.6'
           channel: 'stable'
 
-      - name: Install NDK 26 and 27
+      - name: Install NDK 27
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.1.10909125" "ndk;27.0.12077973"
-          echo "=== NDK LIST ==="
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973" "ndk;26.1.10909125"
           ls $ANDROID_HOME/ndk/
-          echo "=== Check 27 ==="
-          ls $ANDROID_HOME/ndk/27.0.12077973/source.properties
+          cat $ANDROID_HOME/ndk/27.0.12077973/source.properties
 
       - run: flutter pub get
 
-      - name: FIX NDK + sweph
+      - name: FIX - Remove ndkVersion + off_t64
         run: |
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-
-          echo "1. Remove ndkVersion requirement from ALL sweph gradle files"
-          find $HOME -type f -name "build.gradle" | xargs grep -l "27.0.12077973" 2>/dev/null | while read f; do
-            echo "Patching NDK in $f"
-            sed -i '/ndkVersion/d' "$f"
-            cat "$f" | grep -i ndk || echo "no ndk line now"
+          echo "Searching gradle files with ndkVersion..."
+          find $HOME -name "build.gradle" 2>/dev/null | xargs grep -l "ndkVersion" | head -20
+          find $HOME -name "build.gradle" 2>/dev/null | while read f; do
+            if grep -q "ndkVersion" "$f"; then
+              echo "Fixing $f"
+              sed -i '/ndkVersion/d' "$f"
+            fi
           done
-
-          echo "2. Patch off_t64"
-          find $HOME -path "*sweph*/*.c" 2>/dev/null -exec sed -i "s/off_t64/off64_t/g" {} \;
-
-          echo "3. Patch minSdk 16->21"
-          find $HOME -type f -name "build.gradle" -path "*sweph*" 2>/dev/null | while read f; do
-            sed -i "s/minSdkVersion 16/minSdkVersion 21/g" "$f"
-            sed -i "s/minSdk 16/minSdk 21/g" "$f"
-          done
+          echo "Patch off_t64"
+          find $HOME -name "*.c" 2>/dev/null | xargs sed -i "s/off_t64/off64_t/g" 2>/dev/null || true
+          echo "Patch minSdk"
+          find $HOME -name "build.gradle" 2>/dev/null | xargs sed -i "s/minSdkVersion 16/minSdkVersion 21/g" 2>/dev/null || true
 
       - run: flutter build apk --release --no-tree-shake-icons
 
