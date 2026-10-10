@@ -67,7 +67,7 @@ class _ArrangeScreenState extends ConsumerState<ArrangeScreen> {
               _label(context.l10n.arOnThisView),
               if (placed.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(12),
                   child: Text(context.l10n.arEmpty,
                       style: TextStyle(fontSize: 13, color: KJColors.inkSoft)),
                 ),
@@ -94,7 +94,7 @@ class _ArrangeScreenState extends ConsumerState<ArrangeScreen> {
               TextField(
                 decoration: InputDecoration(
                   hintText: context.l10n.arSearchWidgets,
-                  prefixIcon: const Icon(Icons.search, size: 20),
+                  prefixIcon: Icon(Icons.search, size: 20),
                   isDense: true,
                 ),
                 onChanged: (v) => setState(() => _search = v),

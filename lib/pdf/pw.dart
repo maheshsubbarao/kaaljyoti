@@ -33,16 +33,23 @@ class Text extends base.Text {
   Text(
     String text, {
     base.TextStyle? style,
-    super.textAlign,
-    super.textDirection,
-    super.softWrap,
-    super.tightBounds,
-    super.textScaleFactor,
-    super.maxLines,
-    super.overflow,
+    base.TextAlign? textAlign,
+    base.TextDirection? textDirection,
+    bool? softWrap,
+    bool tightBounds = false,
+    double textScaleFactor = 1.0,
+    int? maxLines,
+    base.TextOverflow? overflow,
   }) : super(
           devanagariVisualOrder(text),
           style: _deSpace(style, text),
+          textAlign: textAlign,
+          textDirection: textDirection,
+          softWrap: softWrap,
+          tightBounds: tightBounds,
+          textScaleFactor: textScaleFactor,
+          maxLines: maxLines,
+          overflow: overflow,
         );
 }
 

@@ -30,6 +30,7 @@ import '../data/models.dart';
 import '../l10n/astro_l10n.dart';
 import '../services/long_screenshot.dart';
 import '../state/providers.dart';
+import 'astro_events_screen.dart';
 import '../ui/common.dart';
 import '../ui/dashboard_capture.dart';
 import '../ui/dashboard_layout.dart';
@@ -611,7 +612,7 @@ class DashboardBody extends ConsumerWidget {
               // is unreadable at this size) — see the listener below.
               buildDefaultDragHandles: false,
               padding: const EdgeInsets.only(left: 16),
-              onReorder: (from, to) => _reorderViews(ref, views, from, to),
+              onReorderItem: (from, to) => _reorderViews(ref, views, from, to),
               children: [
                 for (var i = 0; i < views.length; i++)
                   ReorderableDelayedDragStartListener(

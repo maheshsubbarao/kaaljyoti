@@ -160,7 +160,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<int>(
-                    value: month,
+                    initialValue: month,
                     decoration:
                         InputDecoration(labelText: ctx.l10n.dfMonth),
                     isExpanded: true,
@@ -382,7 +382,7 @@ class _EphemerisScreenState extends ConsumerState<EphemerisScreen> {
                 // The app default resolves async after first build; the
                 // key remounts the field so initialValue takes effect.
                 key: ValueKey(ayanamsaId),
-                value: ayanamsaId,
+                initialValue: ayanamsaId,
                 decoration: InputDecoration(
                   labelText: l10n.beSectionAyanamsa,
                   isDense: true,

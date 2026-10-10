@@ -5,9 +5,7 @@ import '../widgetsystem/astro_module.dart';
 String _h(int n) => 'H$n';
 String _hh(int n) => n.toString().padLeft(2,'0');
 List<int> _off(String p){ switch(p){ case 'Ma': return [3,6,7]; case 'Ju': return [4,6,8]; case 'Sa': return [2,6,9]; case 'Ra': case 'Ke': return [4,6,8]; default: return [6]; } }
-bool _asp(int f,String p,int t){ for(var o in _off(p)){ int h=f+o; while(h>12) {
-  h-=12;
-} if(h==t) return true; } return false; }
+bool _asp(int f,String p,int t){ for(var o in _off(p)){ int h=f+o; while(h>12)h-=12; if(h==t) return true; } return false; }
 
 class MDTechniqueModule extends AstroModule {
   const MDTechniqueModule();
@@ -68,17 +66,17 @@ class MDTechniqueModule extends AstroModule {
       double score = dateHouseScores[date]?[house]?? 0;
       bool isEmpty = hits.isEmpty;
       return Container(
-        width: houseW, constraints: const BoxConstraints(minHeight: 52),
-        padding: const EdgeInsets.all(3),
+        width: houseW, constraints: BoxConstraints(minHeight: 52),
+        padding: EdgeInsets.all(3),
         decoration: BoxDecoration(
           color: isEmpty? Colors.white : (house==qH? Colors.yellow[100] : Colors.green[50]),
           border: Border.all(color: Colors.grey.shade400, width: 0.5),
         ),
-        child: isEmpty? const SizedBox() : Column(
+        child: isEmpty? SizedBox() : Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(hits.join(','), style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-            if(score>0) Container(margin: const EdgeInsets.only(top:2), padding: const EdgeInsets.symmetric(horizontal:3, vertical:1), decoration: BoxDecoration(color: Colors.blue[100], borderRadius: BorderRadius.circular(4)), child: Text(score.toStringAsFixed(2), style: TextStyle(fontSize:8, fontWeight: FontWeight.bold, color: Colors.blue[900]))),
+            Text(hits.join(','), style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            if(score>0) Container(margin: EdgeInsets.only(top:2), padding: EdgeInsets.symmetric(horizontal:3, vertical:1), decoration: BoxDecoration(color: Colors.blue[100], borderRadius: BorderRadius.circular(4)), child: Text(score.toStringAsFixed(2), style: TextStyle(fontSize:8, fontWeight: FontWeight.bold, color: Colors.blue[900]))),
           ],
         ),
       );
@@ -86,13 +84,13 @@ class MDTechniqueModule extends AstroModule {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(6),
+        padding: EdgeInsets.all(6),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Dasha Technique - MD=1 AD=2 PD=0.75 SD=0.5 PrD=0.25', style: TextStyle(fontWeight: FontWeight.bold, fontSize:11)),
+            Text('Dasha Technique - MD=1 AD=2 PD=0.75 SD=0.5 PrD=0.25', style: TextStyle(fontWeight: FontWeight.bold, fontSize:11)),
             Text('H$qH Marriage: L=$qLord H$qLordH K=Ve H$karakaH | Yellow=H$qH', style: TextStyle(fontSize:9, color: Colors.grey[700])),
-            const SizedBox(height:6),
+            SizedBox(height:6),
             // FROZEN HEADER - Horizontal scroll only
             SingleChildScrollView(
               controller: hController1,
@@ -104,7 +102,7 @@ class MDTechniqueModule extends AstroModule {
                 ],
               ),
             ),
-            const Divider(height:1, thickness:1),
+            Divider(height:1, thickness:1),
             // BODY - Vertical scroll + horizontal scroll synced
             Expanded(
               child: SingleChildScrollView(
@@ -117,10 +115,10 @@ class MDTechniqueModule extends AstroModule {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            width: dateW, constraints: const BoxConstraints(minHeight: 52),
-                            padding: const EdgeInsets.all(4),
+                            width: dateW, constraints: BoxConstraints(minHeight: 52),
+                            padding: EdgeInsets.all(4),
                             decoration: BoxDecoration(color: Colors.grey[100], border: Border.all(color: Colors.grey.shade400, width:0.5)),
-                            child: Text(date, style: const TextStyle(fontSize:10, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                            child: Text(date, style: TextStyle(fontSize:10, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                           ),
                          ...List.generate(12, (i)=> bodyCell(date, i+1)),
                         ],
@@ -130,8 +128,8 @@ class MDTechniqueModule extends AstroModule {
                 ),
               ),
             ),
-            const SizedBox(height:4),
-            const Text('Tip: Scroll left-right to see H1-H12. Header stays on top. Yellow = Required House', style: TextStyle(fontSize:8, color: Colors.grey)),
+            SizedBox(height:4),
+            Text('Tip: Scroll left-right to see H1-H12. Header stays on top. Yellow = Required House', style: TextStyle(fontSize:8, color: Colors.grey)),
           ],
         ),
       ),

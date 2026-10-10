@@ -403,7 +403,7 @@ PdfColor? pdfDashaInk(DashaPeriod period) {
   return sign == null ? null : pdfSignInk(sign);
 }
 
-pw.TextStyle pdfHeading() => const pw.TextStyle(
+pw.TextStyle pdfHeading() => pw.TextStyle(
     fontSize: 14, color: pdfMaroon, fontWeight: pw.FontWeight.bold);
 
 /// Non-configurable open-source credit, shown once on the LAST page of
@@ -414,7 +414,7 @@ pw.TextStyle pdfHeading() => const pw.TextStyle(
 /// practitioner's own branding.
 pw.Widget kjPdfCredit(AppLocalizations l10n) => pw.Text(
       l10n.pdfCredit,
-      style: const pw.TextStyle(fontSize: 6.5, color: pdfInkSoft),
+      style: pw.TextStyle(fontSize: 6.5, color: pdfInkSoft),
     );
 
 typedef _FontLoader = Future<pw.Font> Function();
@@ -580,7 +580,7 @@ pw.TextStyle pdfBody({double size = 10}) =>
     pw.TextStyle(fontSize: size, color: pdfInk);
 
 pw.TextStyle pdfLabel() =>
-    const pw.TextStyle(fontSize: 8, color: pdfInkSoft, letterSpacing: 0.5);
+    pw.TextStyle(fontSize: 8, color: pdfInkSoft, letterSpacing: 0.5);
 
 /// Air above a section's rule and below its last element. One constant
 /// so every module breathes the same amount — sections used to set

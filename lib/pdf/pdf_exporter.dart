@@ -121,7 +121,7 @@ class PdfExporter {
                   pw.Image(emblem, width: 72, height: 72),
                   pw.SizedBox(height: 16),
                   pw.Text('KAAL JYOTI',
-                      style: const pw.TextStyle(
+                      style: pw.TextStyle(
                           fontSize: 11, letterSpacing: 4, color: pdfInkSoft)),
                   pw.SizedBox(height: 24),
                   pw.Text(ctx.kundli.name,
@@ -130,19 +130,19 @@ class PdfExporter {
                   pw.SizedBox(height: 10),
                   pw.Text(
                     birthFmt.format(ctx.kundli.toBirthData().localDateTime),
-                    style: const pw.TextStyle(fontSize: 12, color: pdfInkSoft),
+                    style: pw.TextStyle(fontSize: 12, color: pdfInkSoft),
                   ),
                   pw.Text(ctx.kundli.placeName,
-                      style: const pw.TextStyle(fontSize: 12, color: pdfInkSoft)),
+                      style: pw.TextStyle(fontSize: 12, color: pdfInkSoft)),
                   pw.SizedBox(height: 6),
                   pw.Text(
                     '${Ayanamsa.byId(ctx.snapshot.ayanamsaId).name} ayanamsa',
-                    style: const pw.TextStyle(fontSize: 9, color: pdfInkSoft),
+                    style: pw.TextStyle(fontSize: 9, color: pdfInkSoft),
                   ),
                   if (options.brandingFooter != null) ...[
                     pw.SizedBox(height: 48),
                     pw.Text(options.brandingFooter!,
-                        style: const pw.TextStyle(fontSize: 10, color: pdfMaroon)),
+                        style: pw.TextStyle(fontSize: 10, color: pdfMaroon)),
                   ],
                 ],
               ),
@@ -186,10 +186,10 @@ class PdfExporter {
                     // Practitioner branding replaces the default
                     // copyright line, never stacks with it.
                     options.brandingFooter ?? '$kCopyrightLine · $kWebsite',
-                    style: const pw.TextStyle(fontSize: 8, color: pdfInkSoft),
+                    style: pw.TextStyle(fontSize: 8, color: pdfInkSoft),
                   ),
                   pw.Text('${context.pageNumber} / ${context.pagesCount}',
-                      style: const pw.TextStyle(fontSize: 8, color: pdfInkSoft)),
+                      style: pw.TextStyle(fontSize: 8, color: pdfInkSoft)),
                 ],
               ),
               if (context.pageNumber == context.pagesCount)

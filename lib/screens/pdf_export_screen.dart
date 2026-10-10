@@ -358,7 +358,7 @@ class _PdfExportScreenState extends ConsumerState<PdfExportScreen> {
                   itemCount: entries.length,
                   // onReorderItem, not onReorder: it hands back a
                   // newIndex already adjusted for the removed item.
-                  onReorder: (oldIndex, newIndex) => _mutate(() =>
+                  onReorderItem: (oldIndex, newIndex) => _mutate(() =>
                       entries.insert(newIndex, entries.removeAt(oldIndex))),
                   itemBuilder: (context, i) {
                     final e = entries[i];
@@ -447,7 +447,7 @@ class _PdfExportScreenState extends ConsumerState<PdfExportScreen> {
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  activeColor: KJColors.maroon,
+                  activeThumbColor: KJColors.maroon,
                   value: _coverPage,
                   onChanged: (v) => _mutate(() => _coverPage = v),
                   title: Text(context.l10n.peCoverPage,

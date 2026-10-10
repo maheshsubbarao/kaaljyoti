@@ -577,7 +577,7 @@ class _BirthEntryScreenState extends ConsumerState<BirthEntryScreen> {
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   value: _syncEnabled,
-                  activeColor: KJColors.maroon,
+                  activeThumbColor: KJColors.maroon,
                   title: Text(l10n.beSyncTitle,
                       style: const TextStyle(fontSize: 13.5)),
                   subtitle: Text(
@@ -595,7 +595,7 @@ class _BirthEntryScreenState extends ConsumerState<BirthEntryScreen> {
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: _followAlerts,
-                activeColor: KJColors.maroon,
+                activeThumbColor: KJColors.maroon,
                 title: Text(l10n.beFollowAlertsTitle,
                     style: const TextStyle(fontSize: 13.5)),
                 subtitle: Text(

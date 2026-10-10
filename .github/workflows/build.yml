@@ -23,32 +23,35 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Force NDK 27 for ALL projects
+      - name: Fix NDK + minSdk 16 error
         run: |
           NDK_VER=27.0.12077973
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "ndk.dir=$ANDROID_HOME/ndk/$NDK_VER" >> android/local.properties
 
-          # 1. Show sweph file before
-          echo "=== BEFORE ==="
-          cat $HOME/.pub-cache/hosted/pub.dev/sweph-*/android/build.gradle | grep ndk
+          # Fix 1: Suppress minSdk error for NDK 27
+          echo "android.ndk.suppressMinSdkVersionError=21" >> android/gradle.properties
+          cat android/gradle.properties
 
-          # 2. Try to fix sweph file with full path
+          # Fix 2: Change sweph minSdk 16 -> 21 and ndk 28.7 -> 27.0
           for f in $(find $HOME -name build.gradle 2>/dev/null | xargs grep -l "28.7.33676358" 2>/dev/null); do
             echo "Fixing $f"
             sed -i "s/28.7.33676358/$NDK_VER/g" "$f"
-            sed -i "s/28.1.13356709/$NDK_VER/g" "$f"
+            sed -i "s/minSdkVersion 16/minSdkVersion 21/g" "$f"
+            sed -i "s/minSdk 16/minSdk 21/g" "$f"
           done
 
-          # 3. Show after
-          echo "=== AFTER ==="
-          cat $HOME/.pub-cache/hosted/pub.dev/sweph-*/android/build.gradle | grep ndk
+          # Fix 3: Also fix sweph in pub-cache directly
+          SWEPH_FILE=$(ls $HOME/.pub-cache/hosted/pub.dev/sweph-*/android/build.gradle 2>/dev/null | head -1)
+          if [ -f "$SWEPH_FILE" ]; then
+            sed -i "s/28.7.33676358/$NDK_VER/g" $SWEPH_FILE
+            sed -i "s/minSdkVersion 16/minSdkVersion 21/g" $SWEPH_FILE
+            cat $SWEPH_FILE | grep -E "ndk|minSdk"
+          fi
 
-          # 4. MOST IMPORTANT - Add override to android/build.gradle
+          # Fix 4: Force all projects to use NDK 27
           echo "" >> android/build.gradle
-          echo "subprojects { afterEvaluate { project -> if (project.hasProperty('android')) { project.android.ndkVersion = '$NDK_VER' } } }" >> android/build.gradle
-          echo "=== android/build.gradle tail ==="
-          tail -5 android/build.gradle
+          echo "subprojects { afterEvaluate { p -> if (p.hasProperty('android')) { p.android.ndkVersion = '$NDK_VER' } } }" >> android/build.gradle
 
       - run: flutter build apk --release --no-tree-shake-icons
 

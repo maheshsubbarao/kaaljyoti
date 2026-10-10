@@ -72,7 +72,7 @@ class _RespondScreenState extends ConsumerState<RespondScreen> {
               const SizedBox(height: 14),
               if (shared.isEmpty)
                 Text(context.l10n.rsNoSharedCharts,
-                    style: const TextStyle(fontSize: 13)),
+                    style: TextStyle(fontSize: 13)),
               for (final k in shared)
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),
@@ -82,7 +82,7 @@ class _RespondScreenState extends ConsumerState<RespondScreen> {
                     controlAffinity: ListTileControlAffinity.leading,
                     title: Text('${k.name} · ${k.mahakoshCode}'),
                     subtitle: Text(context.l10n.rsSharedToMahakosh,
-                        style: const TextStyle(fontSize: 11.5)),
+                        style: TextStyle(fontSize: 11.5)),
                     onChanged: (v) => setState(() {
                       if (v ?? false) {
                         _selectedMkCodes.add(k.mahakoshCode!);
