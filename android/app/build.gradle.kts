@@ -28,11 +28,6 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        externalNativeBuild {
-            cmake {
-                cppFlags("-Doff_t64=off64_t")
-            }
-        }
     }
 
     signingConfigs {
@@ -78,6 +73,7 @@ subprojects {
             val androidExt = extensions.findByName("android")
             if (androidExt is com.android.build.gradle.LibraryExtension) {
                 androidExt.ndkVersion = "27.0.12077973"
+                androidExt.defaultConfig.externalNativeBuild.cmake.cppFlags.add("-Doff_t64=off64_t")
             }
         }
     }
