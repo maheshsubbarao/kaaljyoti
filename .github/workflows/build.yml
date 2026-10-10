@@ -29,35 +29,32 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "ndk.dir=$ANDROID_HOME/ndk/$NDK_VER" >> android/local.properties
 
-          # Fix 1: Suppress minSdk error
           echo "android.ndk.suppressMinSdkVersionError=21" >> android/gradle.properties
-          cat android/gradle.properties
 
-          # Fix 2: Change sweph minSdk 16 -> 21 and NDK 28.7 -> 26.1
-          for f in $(find $HOME -name build.gradle 2>/dev/null | xargs grep -l "28.7.33676358" 2>/dev/null); do
+          # FIX ALL sweph files - this is the new fix for :jni error
+          echo "Fixing all sweph gradle files..."
+          find $HOME/.pub-cache -type f -name "*.gradle" -path "*sweph*" 2>/dev/null | while read f; do
             echo "Fixing $f"
             sed -i "s/28.7.33676358/$NDK_VER/g" "$f"
-            sed -i "s/minSdkVersion 16/minSdkVersion 21/g" "$f"
-            sed -i "s/minSdk 16/minSdk 21/g" "$f"
+            sed -i "s/28.1.13356709/$NDK_VER/g" "$f"
+            sed -i "s/27.0.12077973/$NDK_VER/g" "$f"
+            sed -i "s/ndkVersion = \".*\"/ndkVersion = \"$NDK_VER\"/g" "$f"
           done
 
-          # Fix 3: Fix sweph in pub-cache build.gradle
-          SWEPH_FILE=$(ls $HOME/.pub-cache/hosted/pub.dev/sweph-*/android/build.gradle 2>/dev/null | head -1)
-          if [ -f "$SWEPH_FILE" ]; then
-            sed -i "s/28.7.33676358/$NDK_VER/g" $SWEPH_FILE
-            sed -i "s/27.0.12077973/$NDK_VER/g" $SWEPH_FILE
-            sed -i "s/minSdkVersion 16/minSdkVersion 21/g" $SWEPH_FILE
-            cat $SWEPH_FILE | grep -E "ndk|minSdk"
-          fi
+          # Also fix jni folder build.gradle if exists
+          find $HOME/.pub-cache -path "*sweph*/jni*" -name "*.gradle" 2>/dev/null -exec sed -i "s/28.7.33676358/$NDK_VER/g" {} \;
+          find $HOME/.pub-cache -path "*sweph*/jni*" -name "*.gradle" 2>/dev/null -exec sed -i "s/28.*/$NDK_VER/g" {} \; || true
 
-          # Fix 4: FINAL FIX for off_t64 bug - patch C source
-          echo "Patching sweph C files off_t64 -> off64_t"
+          # Patch C files off_t64 -> off64_t
+          echo "Patching C files..."
           for src in $(find $HOME/.pub-cache -path "*sweph*/native/sweph/src/*.c" 2>/dev/null); do
-            echo "Patching $src"
             sed -i "s/off_t64/off64_t/g" "$src"
           done
-          # Verify fix
-          grep -r "off_t64" $HOME/.pub-cache/hosted/pub.dev/sweph-*/native/sweph/src/ || echo "off_t64 removed - FIX OK"
+
+          # Verify
+          grep -R "28.7.33676358" $HOME/.pub-cache/hosted/pub.dev/sweph-* 2>/dev/null || echo "All 28.7 removed - OK"
+          cat $HOME/.pub-cache/hosted/pub.dev/sweph-*/android/build.gradle | grep ndkVersion
+          find $HOME/.pub-cache/hosted/pub.dev/sweph-* -name "build.gradle" -exec grep -H "ndkVersion" {} \;
 
       - run: flutter build apk --release --no-tree-shake-icons
 
