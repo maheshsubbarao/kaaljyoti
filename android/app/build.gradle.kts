@@ -1,8 +1,10 @@
+import org.gradle.api.tasks.Copy
 import java.util.Properties
 import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
+    id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -13,21 +15,27 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    ndkVersion = "27.0.12077973"
     namespace = "com.kaaljyoti"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 34
+    ndkVersion = "27.0.12077973"
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
     }
 
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
     defaultConfig {
         applicationId = "com.kaaljyoti"
-        minSdk = 24
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 23
+        targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true
     }
 
     signingConfigs {
@@ -35,7 +43,7 @@ android {
             if (keystorePropertiesFile.exists()) {
                 keyAlias = keystoreProperties["keyAlias"] as String
                 keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                storeFile = file(keystoreProperties["storeFile"] as String)
                 storePassword = keystoreProperties["storePassword"] as String
             }
         }
@@ -43,11 +51,11 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
             isMinifyEnabled = false
             isShrinkResources = false
         }
@@ -59,17 +67,7 @@ flutter {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    implementation("androidx.multidex:multidex:2.0.1")
     implementation("com.google.android.gms:play-services-auth-blockstore:16.4.0")
-}
-
-subprojects {
-    afterEvaluate {
-        if (project.name == "sweph") {
-            val androidExt = extensions.findByName("android")
-            if (androidExt is com.android.build.gradle.LibraryExtension) {
-                androidExt.ndkVersion = "27.0.12077973"
-            }
-        }
-    }
 }
