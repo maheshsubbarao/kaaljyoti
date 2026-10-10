@@ -14,10 +14,7 @@ dependencies:
   file_picker: ^8.1.0
   flutter_riverpod: ^2.5.1
   go_router: ^14.2.0
-  sweph:
-    git:
-      url: https://github.com/vm75/sweph.dart.git
-      ref: v4.0.0+2.10.3
+  sweph: 3.2.1+2.10.3
   sqflite_sqlcipher: ^3.1.0
   flutter_secure_storage: ^9.2.2
   path_provider: ^2.1.3
@@ -81,4 +78,3 @@ flutter:
     - assets/emblem.png
     - assets/kj_devanagari_pdf.ttf
     - assets/
-    # - assets/ephe/

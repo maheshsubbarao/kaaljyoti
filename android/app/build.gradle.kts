@@ -28,6 +28,11 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        externalNativeBuild {
+            cmake {
+                cppFlags("-Doff_t64=off64_t")
+            }
+        }
     }
 
     signingConfigs {
@@ -57,7 +62,6 @@ android {
         }
     }
 }
-
 
 flutter {
     source = "../.."
