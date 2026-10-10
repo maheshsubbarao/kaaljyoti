@@ -11,31 +11,28 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install NDK 26, 27 and 28
-        run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.1.10909125" "ndk;27.0.12077973" "ndk;28.1.13356709"
-          ls $ANDROID_HOME/ndk/
-
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.6'
           channel: 'stable'
 
+      - name: Install NDK 27 and 28 after Flutter
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;26.1.10909125" "ndk;27.0.12077973" "ndk;28.1.13356709" "ndk;27.0.12077973"
+          ls -la $ANDROID_HOME/ndk/
+          echo "NDK 27 exists:"
+          ls $ANDROID_HOME/ndk/27.0.12077973/ || echo "NOT FOUND"
+
       - run: flutter pub get
 
-      - name: Fix NDK + sweph off_t64 error
+      - name: Fix sweph off_t64 error
         run: |
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-          echo "Patching C files off_t64 -> off64_t"
-          find $HOME -path "*sweph*/native/sweph/src/*.c" 2>/dev/null | while read src; do
-            sed -i "s/off_t64/off64_t/g" "$src"
-          done
-          echo "Patching minSdk 16->21"
-          find $HOME -type f -name "build.gradle" -path "*sweph*" 2>/dev/null | while read f; do
-            sed -i "s/minSdkVersion 16/minSdkVersion 21/g" "$f"
-            sed -i "s/minSdk 16/minSdk 21/g" "$f"
-          done
+          echo "Patching C files"
+          find $HOME -path "*sweph*/native/sweph/src/*.c" -exec sed -i "s/off_t64/off64_t/g" {} \; 2>/dev/null || true
+          find $HOME -type f -name "build.gradle" -path "*sweph*" -exec sed -i "s/minSdkVersion 16/minSdkVersion 21/g" {} \; 2>/dev/null || true
+          find $HOME -type f -name "build.gradle" -path "*sweph*" -exec sed -i "s/minSdk 16/minSdk 21/g" {} \; 2>/dev/null || true
 
       - run: flutter build apk --release --no-tree-shake-icons
 
