@@ -31,6 +31,7 @@ import '../modules/upcoming_events_module.dart';
 import '../modules/varshphal_bala_module.dart';
 import '../modules/varshphal_dasha_module.dart';
 import '../modules/eleven_techniques_module.dart';
+import '../modules/power_graph_master.dart';
 import '../modules/varshphal_divisional_module.dart';
 import '../modules/varshphal_maasa_module.dart';
 import '../modules/varshphal_yoga_module.dart';
@@ -94,6 +95,7 @@ const List<AstroModule> _allModules = [
   PDTechniqueModule(),
   APTechniqueModule(),
   TNMasterModule(),
+  PowerGraphMasterModule(),
 ];
 
 final Map<String, AstroModule> moduleRegistry = {
