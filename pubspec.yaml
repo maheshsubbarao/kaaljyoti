@@ -65,9 +65,9 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   color: "#F8F3E8"
-  image: "branding/generated/splash_emblem_1024.png"
+  image: "assets/images/app_icon.png"
   android_12:
-    image: "branding/generated/android12_emblem_1024.png"
+    image: "assets/images/app_icon.png"
     color: "#F8F3E8"
 
 flutter:
@@ -76,5 +76,6 @@ flutter:
   assets:
     - assets/emblem.png
     - assets/kj_devanagari_pdf.ttf
-    - assets/
     - assets/images/app_icon.png
+    - assets/images/
+    - assets/
