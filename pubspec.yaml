@@ -38,7 +38,7 @@ dependencies:
   url_launcher: ^6.3.0
   sentry_flutter: ^8.14.2
   firebase_core: ^3.12.1
-  firebase_messaging: ^14.9.4
+  firebase_messaging: ^15.2.10
   flutter_local_notifications: ^18.0.1
   package_info_plus: ^9.0.1
   lat_lng_to_timezone: ^0.2.0
