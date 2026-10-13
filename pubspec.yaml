@@ -74,7 +74,6 @@ flutter:
   uses-material-design: true
   generate: true
   assets:
-    - google_fonts/
     - assets/emblem.png
     - assets/kj_devanagari_pdf.ttf
     - assets/
