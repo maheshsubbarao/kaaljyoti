@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.kaaljyoti_fixed"
+    namespace = namespace = "com.mastrology.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -24,7 +24,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.kaaljyoti_fixed"
+        applicationId "com.mastrology.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
