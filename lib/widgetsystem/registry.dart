@@ -78,8 +78,7 @@ const List<AstroModule> _allModules = [
   SarvatobhadraModule(),
   KotaChakraModule(),
   SudarshanaModule(),
-  // DELETED UpcomingEventsModule - BOSS FIX Astro Events Predictive Removed
-  // UpcomingEventsModule(),
+  const UpcomingEventsModule(),
   SadeSatiModule(),
   ShadbalaModule(),
   BhavaBalaModule(),
