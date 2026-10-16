@@ -6,9 +6,11 @@ class JyotishChart {
   final int month; // 1-12 FIXED
   final int monthZero; // 0-11 original
   final int year;
-  final int hour;
+  final int hour; // 24hr fixed
+  final int hour12; // original 12hr
   final int minute;
   final int second;
+  final int amPmFlag; // 0=AM, 1=PM - BOSS FIX
   final String place;
   final double longitude;
   final double latitude;
@@ -22,8 +24,10 @@ class JyotishChart {
     required this.monthZero,
     required this.year,
     required this.hour,
+    required this.hour12,
     required this.minute,
     required this.second,
+    required this.amPmFlag,
     required this.place,
     required this.longitude,
     required this.latitude,
@@ -54,35 +58,51 @@ class JyotishImportService {
         String name = nameParts[0].trim();
         String data = nameParts[1].trim();
         final p = data.split('#');
-        if (p.length < 16) continue;
+        if (p.length < 17) continue;
 
         int day = int.parse(p[0]);
-        int monthZero = int.parse(p[1]); // Jan=0 YOUR NOTE
-        int month = monthZero + 1; // FIX
+        int monthZero = int.parse(p[1]);
+        int month = monthZero + 1;
         int year = int.parse(p[2]);
-        int hour = int.parse(p[3]);
-        int minute = int.parse(p[4]);
-        int second = int.parse(p[5]);
-        int tzH = int.parse(p[6]); // 5
-        int tzM = int.parse(p[7]); // 30
-        int tzOffset = tzH * 60 + tzM; // 330
-        String place = p[9];
 
+        // BOSS FIX - CORRECT PARSING
+        int hour12 = int.parse(p[3]); // 1-12
+        int minute = int.parse(p[4]);
+        int amPmFlag = int.parse(p[5]); // 0=AM,1=PM - BUG WAS HERE!
+
+        int tzH = int.parse(p[6]);
+        int tzM = int.parse(p[7]);
+        int tzOffset = tzH * 60 + tzM;
+
+        String place = p[9];
         double lonDeg = double.parse(p[10]);
         double lonMin = double.parse(p[11]);
         double longitude = lonDeg + lonMin / 60;
-
         double latDeg = double.parse(p[13]);
         double latMin = double.parse(p[14]);
         double latitude = latDeg + latMin / 60;
 
+        int second = 0;
+        if (p.length > 16) {
+          second = int.tryParse(p[16].trim())?? 0; // Real second at p[16]
+        }
+
         if (month < 1 || month > 12) continue;
 
-        DateTime localDt = DateTime(year, month, day, hour, minute, second);
+        // BOSS FIX: 12hr -> 24hr
+        int hour24 = hour12;
+        if (amPmFlag == 1 && hour12 < 12) {
+          hour24 = hour12 + 12; // 6 PM -> 18
+        }
+        if (amPmFlag == 0 && hour12 == 12) {
+          hour24 = 0; // 12 AM -> 0
+        }
+
+        DateTime localDt = DateTime(year, month, day, hour24, minute, second);
 
         list.add(JyotishChart(
           name: name, day: day, month: month, monthZero: monthZero,
-          year: year, hour: hour, minute: minute, second: second,
+          year: year, hour: hour24, hour12: hour12, minute: minute, second: second, amPmFlag: amPmFlag,
           place: place, longitude: longitude, latitude: latitude,
           tzOffsetMinutes: tzOffset, birthDateTimeLocal: localDt,
         ));

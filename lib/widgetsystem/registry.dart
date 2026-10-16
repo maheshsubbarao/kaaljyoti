@@ -40,7 +40,7 @@ import '../modules/varshphal_module.dart';
 import '../modules/varshphal_saham_module.dart';
 import '../modules/yogas_module.dart';
 import 'astro_module.dart';
-import '../modules/astro_events_module.dart';
+// DELETED: import '../modules/astro_events_module.dart'; - BOSS FIX Astro Events Removed
 
 const List<AstroModule> _allModules = [
   BirthChartModule(),
@@ -67,7 +67,6 @@ const List<AstroModule> _allModules = [
   PaceModule(),
   YogasModule(),
   TransitModule(),
-  AstroEventsModule(),
   KpCuspsModule(),
   KpPlanetsModule(),
   KpSignificatorsModule(),
@@ -79,13 +78,15 @@ const List<AstroModule> _allModules = [
   SarvatobhadraModule(),
   KotaChakraModule(),
   SudarshanaModule(),
-  UpcomingEventsModule(),
+  // DELETED UpcomingEventsModule - BOSS FIX Astro Events Predictive Removed
+  // UpcomingEventsModule(),
   SadeSatiModule(),
   ShadbalaModule(),
   BhavaBalaModule(),
   // ResearchLabModule(),
   MDTechniqueModule(),
-  // ADTechniqueModule(), // DELETED
+  // ADTechniqueModule(), // DELETED - BOSS FIX
+  TNMasterModule(),
   D9TechniqueModule(),
   SJMHModule(),
   AIOModule(),
@@ -94,7 +95,7 @@ const List<AstroModule> _allModules = [
   SATechniqueModule(),
   PDTechniqueModule(),
   APTechniqueModule(),
-  TNMasterModule(),
+  BadTransitsModule(),
   PowerGraphMasterModule(),
 ];
 
