@@ -65,10 +65,10 @@ class JyotishImportService {
         int month = monthZero + 1;
         int year = int.parse(p[2]);
 
-        // BOSS FIX - CORRECT PARSING
-        int hour12 = int.parse(p[3]); // 1-12
+        // BOSS FIX - CORRECT PARSING - EXACT AS PER JYOTISH APP
+        int hour12 = int.parse(p[3]); // 1-12 original
         int minute = int.parse(p[4]);
-        int amPmFlag = int.parse(p[5]); // 0=AM,1=PM - BUG WAS HERE!
+        int amPmFlag = int.parse(p[5]); // 0=AM,1=PM
 
         int tzH = int.parse(p[6]);
         int tzM = int.parse(p[7]);
@@ -84,29 +84,45 @@ class JyotishImportService {
 
         int second = 0;
         if (p.length > 16) {
-          second = int.tryParse(p[16].trim())?? 0; // Real second at p[16]
+          second = int.tryParse(p[16].trim())?? 0;
         }
 
         if (month < 1 || month > 12) continue;
 
-        // BOSS FIX: 12hr -> 24hr
-        int hour24 = hour12;
-        if (amPmFlag == 1 && hour12 < 12) {
-          hour24 = hour12 + 12; // 6 PM -> 18
+        // BOSS FIX FINAL - 12hr -> 24hr PERFECT LOGIC
+        // 8 AM (8#0) -> 8, 6 PM (6#1) -> 18, 12 AM -> 0, 12 PM -> 12
+        int hour24 = hour12 % 12; // 12 becomes 0
+        if (amPmFlag == 1) {
+          hour24 += 12; // PM add 12
         }
-        if (amPmFlag == 0 && hour12 == 12) {
-          hour24 = 0; // 12 AM -> 0
-        }
+        // Results:
+        // Mahesh 8#31#0 -> 8%12=8 +0 =8 AM ✓
+        // Rama 6#30#1 -> 6%12=6+12=18 PM ✓
+        // 12 AM -> 0%12=0+0=0 ✓
+        // 12 PM -> 12%12=0+12=12 ✓
 
         DateTime localDt = DateTime(year, month, day, hour24, minute, second);
 
         list.add(JyotishChart(
-          name: name, day: day, month: month, monthZero: monthZero,
-          year: year, hour: hour24, hour12: hour12, minute: minute, second: second, amPmFlag: amPmFlag,
-          place: place, longitude: longitude, latitude: latitude,
-          tzOffsetMinutes: tzOffset, birthDateTimeLocal: localDt,
+          name: name,
+          day: day,
+          month: month,
+          monthZero: monthZero,
+          year: year,
+          hour: hour24,
+          hour12: hour12,
+          minute: minute,
+          second: second,
+          amPmFlag: amPmFlag,
+          place: place,
+          longitude: longitude,
+          latitude: latitude,
+          tzOffsetMinutes: tzOffset,
+          birthDateTimeLocal: localDt,
         ));
-      } catch (e) { continue; }
+      } catch (e) {
+        continue;
+      }
     }
     return list;
   }
