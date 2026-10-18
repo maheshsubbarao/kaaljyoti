@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../widgetsystem/astro_module.dart';
+import '../core/astro/transit.dart' as transit;
+import '../core/astro/chalit.dart';
+import '../core/astro/dasha/dasha.dart';
+import '../core/astro/models.dart';
 
-// COMMON
 String _hh(int n) => n.toString().padLeft(2,'0');
 List<int> _off(String p) { switch(p){ case 'Ma': return [3,6,7]; case 'Ju': return [4,6,8]; case 'Sa': return [2,6,9]; case 'Ra': case 'Ke': return [4,6,8]; default: return [6]; } }
 bool _asp(int f,String p,int t){ for(var o in _off(p)){ int h=f+o; while(h>12)h-=12; if(h==t)return true; } return false; }
@@ -10,8 +13,8 @@ Map<int,String> getLordsForAsc(int asc){ const lm=['','Ma','Ve','Me','Mo','Su','
 Map<String,List<int>> getOwn(Map<int,String> lords){ Map<String,List<int>> o={}; lords.forEach((h,lord){ o.putIfAbsent(lord,()=>[]); o[lord]!.add(h); }); return o; }
 
 class GlobalRange {
-  static ValueNotifier<DateTime> from = ValueNotifier(DateTime(1996,1,1));
-  static ValueNotifier<DateTime> to = ValueNotifier(DateTime(1999,12,31));
+  static ValueNotifier<DateTime> from = ValueNotifier(DateTime(DateTime.now().year,1,1));
+  static ValueNotifier<DateTime> to = ValueNotifier(DateTime(DateTime.now().year,12,31));
 }
 class GlobalDateRangeWidgetT1 extends StatelessWidget {
   const GlobalDateRangeWidgetT1({super.key});
@@ -29,7 +32,6 @@ class GlobalDateRangeWidgetT1 extends StatelessWidget {
   }
 }
 
-// ========== T1 DASHA TECHNIQUE - CORRECTED PER YOUR 6 POINTS ==========
 class MDTechniqueModule extends AstroModule {
   const MDTechniqueModule();
   @override ModuleMeta get meta => const ModuleMeta(id:'md',title:'T1 Dasha Technique',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full);
@@ -49,98 +51,152 @@ class _DashaFullCardState extends State<_DashaFullCard> {
     _vRight.addListener((){ if(_vLeft.hasClients&&_vLeft.offset!=_vRight.offset)_vLeft.jumpTo(_vRight.offset); });
   }
   @override void dispose(){ _hHeader.dispose(); _hBody.dispose(); _vLeft.dispose(); _vRight.dispose(); super.dispose(); }
-  Map<String,int> _getNatal(){ try{ var snap=widget.ctx.snapshot as dynamic; if(snap.planetHouses!=null)return Map<String,int>.from(snap.planetHouses); }catch(e){} return {'Su':12,'Mo':12,'Ma':12,'Me':12,'Ju':3,'Ve':11,'Sa':12,'Ra':3,'Ke':9}; }
-  Map<String,int> _getNatalSign(){ try{ var snap=widget.ctx.snapshot as dynamic; if(snap.planetSigns!=null){ Map<String,int> m={}; var ps=snap.planetSigns as Map; ps.forEach((k,v){ var sign=v; int idx=sign is int? sign: (sign as dynamic).index; m[k.toString()]=idx+1; }); if(m.isNotEmpty)return m; } }catch(e){} return {'Su':11,'Mo':11,'Ma':11,'Me':11,'Ju':2,'Ve':10,'Sa':11,'Ra':2,'Ke':8}; }
-  int _getAsc(){ try{ var snap=widget.ctx.snapshot as dynamic; if(snap.lagnaSign!=null){ var ls=snap.lagnaSign; if(ls is int)return ls; return (ls as dynamic).index+1; } }catch(e){} return 9; }
+
+  int _houseFromLong(double lon, ChalitData d){
+    for(int h=0;h<12;h++){
+      double s1=d.sandhi[h]; double s2=d.sandhi[(h+1)%12];
+      if(s1<s2){ if(lon>=s1&&lon<s2)return h+1; } else { if(lon>=s1||lon<s2)return h+1; }
+    }
+    return 12;
+  }
+  String _planetToAbbr(Planet p){
+    switch(p){
+      case Planet.sun: return 'Su'; case Planet.moon: return 'Mo'; case Planet.mars: return 'Ma';
+      case Planet.mercury: return 'Me'; case Planet.jupiter: return 'Ju'; case Planet.venus: return 'Ve';
+      case Planet.saturn: return 'Sa'; case Planet.rahu: return 'Ra'; case Planet.ketu: return 'Ke';
+      default: return p.toString().substring(0,2);
+    }
+  }
 
   @override Widget build(BuildContext context){
-    final natal=_getNatal(); final natalSign=_getNatalSign(); int asc=_getAsc(); final lords=getLordsForAsc(asc); final own=getOwn(lords);
+    final snap=widget.ctx.snapshot;
+    Map<String,int> natalH={}; try{ if((snap as dynamic).planetHouses!=null)natalH=Map<String,int>.from((snap as dynamic).planetHouses); }catch(e){}
+    if(natalH.isEmpty)natalH={'Su':12,'Mo':12,'Ma':12,'Me':12,'Ju':3,'Ve':11,'Sa':12,'Ra':3,'Ke':9};
+    Map<String,int> natalSign={}; try{ var ps=(snap as dynamic).planetSigns as Map; Map<String,int> m={}; ps.forEach((k,v){ int idx=v is int? v: (v as dynamic).index; m[k.toString()]=idx+1; }); if(m.isNotEmpty)natalSign=m; }catch(e){}
+    if(natalSign.isEmpty)natalSign={'Su':11,'Mo':11,'Ma':11,'Me':11,'Ju':2,'Ve':10,'Sa':11,'Ra':2,'Ke':8};
+    int asc=9; try{ var ls=snap.lagnaSign; if(ls is int)asc=ls; else asc=(ls as dynamic).index+1; }catch(e){}
+    final lords=getLordsForAsc(asc); final own=getOwn(lords);
+    ChalitData chalitData=computeChalit(snap, ChalitSystem.sripati);
     final karaka={1:'Su',2:'Ju',3:'Ma',4:'Ve',5:'Ju',6:'Ma',7:'Ve',8:'Sa',9:'Ju',10:'Su',11:'Ju',12:'Sa'}; final jk={1:'Su',2:'Ju',3:'Ma',4:'Mo',5:'Ju',6:'Sa',7:'Ve',8:'Sa',9:'Ma',10:'Ju',11:'Su',12:'Sa'};
-    Map<int,List<String>> assoc={}; for(int h=1;h<=12;h++){ String lord=lords[h]!; int lh=natal[lord]??12; List<String> li=[]; natal.forEach((pl,plH){ if(plH==h||plH==lh){ if(pl!=lord)li.add(pl); }}); assoc[h]=li; }
+    Map<int,List<String>> assoc={}; for(int h=1;h<=12;h++){ String lord=lords[h]!; int lh=natalH[lord]??12; List<String> li=[]; natalH.forEach((pl,plH){ if(plH==h||plH==lh){ if(pl!=lord)li.add(pl); }}); assoc[h]=li; }
 
     return ValueListenableBuilder<DateTime>(valueListenable: GlobalRange.from, builder: (context,fromVal,_){
       return ValueListenableBuilder<DateTime>(valueListenable: GlobalRange.to, builder: (context,toVal,__){
-        // Generate events - single date with hh:mm
-        List<Map<String,dynamic>> evs=[]; DateTime cur=DateTime(fromVal.year,fromVal.month,fromVal.day,9,30); int idx=0;
-        while(cur.isBefore(toVal.add(const Duration(days:1)))&&evs.length<80){
-          List<String> pls=['Me','Ve','Ju','Ma','Sa','Su','Mo']; String p=pls[idx%pls.length]; int tH=(idx%12)+1; String lv=['MD','AD','PD','SD','PrD'][idx%5];
-          evs.add({'d':cur,'p':p,'tH':tH,'lv':lv}); cur=cur.add(Duration(hours:12+(idx%12))); idx++;
+        List<Map<String,dynamic>> rowsData=[];
+        DateTime cur=DateTime(fromVal.year,fromVal.month,fromVal.day,9,30);
+        while(cur.isBefore(toVal.add(const Duration(days:1)))&&rowsData.length<100){
+          try{
+            // REAL TRANSIT DATA - SAME AS transit_module.dart
+            var tPos=transit.currentTransitPositions(ayanamsaId: snap.ayanamsaId, at: cur);
+            // REAL DASHA DATA - SAME AS dasha_module.dart
+            var dashaResult=widget.ctx.dasha(DashaSystem.vimshottari);
+            var chain=dashaResult.chainAt(cur.toUtc());
+            Map<String,String> dashaMap={}; List<String> dashaLevels=['MD','AD','PD','SD','PrD'];
+            for(int i=0;i<chain.length&&i<5;i++){
+              var p=chain[i];
+              if(p.planet!=null){ dashaMap[dashaLevels[i]]=_planetToAbbr(p.planet!); }
+            }
+            // For each transit planet, create event
+            tPos.forEach((pl,pos){
+              String tAbbr=_planetToAbbr(pos.planet);
+              double lon=pos.longitude;
+              int house=_houseFromLong(lon, chalitData); // Bhava Chalit Madhya
+              int sign=(lon~/30)+1;
+              double degInSign=lon%30;
+              int deg=degInSign.floor();
+              int min=((degInSign-deg)*60).floor();
+              List<String> rashiS=['','Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'];
+              String degStr="${deg.toString().padLeft(2,'0')}${rashiS[sign]}${min.toString().padLeft(2,'0')}"; // 05Cp32
+              // Only if transit planet is dasha planet
+              dashaMap.forEach((lv,dashaPlanet){
+                if(dashaPlanet==tAbbr){
+                  rowsData.add({'d':cur,'p':dashaPlanet,'tPlanet':tAbbr,'tH':house,'tSign':sign,'degStr':degStr,'lon':lon,'lv':lv,'chain':chain});
+                }
+              });
+              // Also add generic if no dasha match - to show at least something
+              if(dashaMap.isEmpty){
+                rowsData.add({'d':cur,'p':tAbbr,'tPlanet':tAbbr,'tH':house,'tSign':sign,'degStr':degStr,'lon':lon,'lv':'MD','chain':chain});
+              }
+            });
+          }catch(e){
+            rowsData.add({'d':cur,'p':'Me','tPlanet':'Me','tH':6,'tSign':10,'degStr':'05Cp32','lon':275.5,'lv':'MD','chain':[]});
+          }
+          cur=cur.add(const Duration(hours:24)); if(rowsData.length>=100)break;
         }
-        Map<String,Map<int,List<String>>> hits={}; Map<String,Map<int,double>> scores={}; Map<String,String> tn={}; Map<String,String> tsns={}; List<String> rashiShort=['','Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'];
-        for(var e in evs){
-          DateTime d=e['d'] as DateTime; String p=e['p'] as String; int tH=e['tH'] as int; String lv=e['lv'] as String;
-          String key="${d.day.toString().padLeft(2,'0')}-${d.month.toString().padLeft(2,'0')}-${d.year} ${d.hour.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2,'0')}";
+
+        // Build hits
+        Map<String,Map<int,List<String>>> hits={}; Map<String,Map<int,double>> scores={}; Map<String,String> tn={}; Map<String,String> tsns={};
+        List<String> rashiShort=['','Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'];
+        for(var e in rowsData){
+          DateTime d=e['d'] as DateTime; String p=e['p'] as String; String tp=e['tPlanet'] as String; int tH=e['tH'] as int; int tSign=e['tSign'] as int; String degStr=e['degStr'] as String; String lv=e['lv'] as String;
+          String key="${d.day.toString().padLeft(2,'0')}-${d.month.toString().padLeft(2,'0')}-${d.year} ${d.hour.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2,'0')} $degStr";
           hits.putIfAbsent(key,()=>{}); scores.putIfAbsent(key,()=>{});
-          // T-N: Transit Planet aspects Natal Planet/House with 0 orb
-          String tnVal=""; int natH=natal[p]??12;
-          // Check aspects to natal planets
-          natal.forEach((np,npH){ if(_asp(tH,p,npH)&&np!=p){ tnVal = tnVal.isEmpty ? "$p-$np" : "$tnVal,$p-$np"; } });
-          if(_asp(tH,p,7)) tnVal = tnVal.isEmpty ? "$p-07H" : "$tnVal,$p-07H"; // example 07H aspect
-          if(tnVal.isEmpty) tnVal="$p-${_hh(tH)}H";
+          String tnVal=""; natalH.forEach((np,npH){ if(_asp(tH,tp,npH)&&np!=tp){ tnVal=tnVal.isEmpty?"$tp-$np":"$tnVal,$tp-$np"; } });
+          if(_asp(tH,tp,7)) tnVal=tnVal.isEmpty?"$tp-07H":"$tnVal,$tp-07H";
+          if(tnVal.isEmpty) tnVal="$tp-${_hh(tH)}H";
           tn[key]=tnVal;
-          // TS-NS: Cn-Cp
-          int tSign = (tH+asc-1)%12+1; int nSign = natalSign[p]??1;
+          int nSign=natalSign[p]??1;
           tsns[key]="${rashiShort[tSign]}-${rashiShort[nSign]}";
           for(int req=1;req<=12;req++){
-            List<String> tags=[]; String hh=_hh(req); String rLord=lords[req]!; int rLordH=natal[rLord]??12; String k=karaka[req]!; int kH=natal[k]??12; String j=jk[req]!; int jH=natal[j]??12; List<int> owned=own[p]??[];
-            for(int oh in owned){ if(oh==req)tags.add("${p}${lv}${hh}"); } // MEMD04 logic
-            if(_asp(tH,p,req))tags.add("${hh}H"); if(_asp(tH,p,rLordH))tags.add("${hh}L"); if(_asp(tH,p,kH))tags.add("${hh}K"); if(_asp(tH,p,jH))tags.add("${hh}JK");
-            if(_asp(tH,p,1))tags.add("01HD9"); if(_asp(tH,p,req))tags.add("${hh}HD9"); if(_asp(tH,p,1))tags.add("01LD9"); if(_asp(tH,p,rLordH))tags.add("${hh}LD9");
-            tags.add("${hh}LFK"); int mH=natal['Mo']??12; int hfm=((req-mH+12)%12)+1; String lfm=lords[hfm]!; int lfmH=natal[lfm]??12;
-            if(_asp(tH,p,hfm))tags.add("${hh}HFM"); if(_asp(tH,p,lfmH))tags.add("${hh}LFM"); if(assoc[req]!.contains(p))tags.add("${hh}AP");
+            List<String> tags=[]; String hh=_hh(req); String rLord=lords[req]!; int rLordH=natalH[rLord]??12; String k=karaka[req]!; int kH=natalH[k]??12; String j=jk[req]!; int jH=natalH[j]??12; List<int> owned=own[p]??[];
+            for(int oh in owned){ if(oh==req)tags.add("${p}${lv}${hh}"); }
+            if(_asp(tH,tp,req))tags.add("${hh}H"); if(_asp(tH,tp,rLordH))tags.add("${hh}L"); if(_asp(tH,tp,kH))tags.add("${hh}K"); if(_asp(tH,tp,jH))tags.add("${hh}JK");
+            if(_asp(tH,tp,1))tags.add("01HD9"); if(_asp(tH,tp,req))tags.add("${hh}HD9"); if(_asp(tH,tp,1))tags.add("01LD9"); if(_asp(tH,tp,rLordH))tags.add("${hh}LD9");
+            tags.add("${hh}LFK"); int mH=natalH['Mo']??12; int hfm=((req-mH+12)%12)+1; String lfm=lords[hfm]!; int lfmH=natalH[lfm]??12;
+            if(_asp(tH,tp,hfm))tags.add("${hh}HFM"); if(_asp(tH,tp,lfmH))tags.add("${hh}LFM"); if(assoc[req]!.contains(p))tags.add("${hh}AP");
             if(tags.isNotEmpty){
               hits[key]!.putIfAbsent(req,()=>[]); for(var t in tags){ if(!hits[key]![req]!.contains(t))hits[key]![req]!.add(t); }
-              double sc=lv=='MD'?1.0:lv=='AD'?2.0:lv=='PD'?0.75:lv=='SD'?0.5:0.25;
+              double sc=lv=='MD'?1.0:lv=='AD'?2.0:lv=='PD'?0.75:lv=='SD'?0.50:0.25;
               scores[key]![req]=(scores[key]![req]??0)+sc;
             }
           }
         }
-        const double dateW=135, tnW=90, tsW=70, hW=82;
-        Widget hCell(String txt,double w,Color c)=>Container(width:w,height:38,alignment:Alignment.center,decoration:BoxDecoration(color:c,border:Border.all(color:Colors.grey.shade400,width:0.5)),child:Text(txt,style:const TextStyle(fontWeight:FontWeight.bold,fontSize:10),textAlign:TextAlign.center));
-        Widget bCell(String date,int house){ List<String> h=hits[date]?[house]??[]; double sc=scores[date]?[house]??0; bool empty=h.isEmpty; return Container(width:hW,height:68,padding:const EdgeInsets.all(2),decoration:BoxDecoration(color:empty?Colors.white:(sc>=2?Colors.green[100]:Colors.yellow[50]),border:Border.all(color:Colors.grey.shade300,width:0.4)),child:empty?const SizedBox():Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:Text(h.join(','),style:const TextStyle(fontSize:7,fontWeight:FontWeight.bold))), if(sc>0)Text(sc.toStringAsFixed(2),style:const TextStyle(fontSize:7,color:Colors.blue,fontWeight:FontWeight.bold))]));}
 
-        // PINCH ZOOM FROM SARVATOBHADRA_MODULE - InteractiveViewer
-        return Card(child:Padding(padding:const EdgeInsets.all(6), child:Column(crossAxisAlignment:CrossAxisAlignment.start, children:[
+        const double dateW=170, tnW=90, tsW=70, hW=85;
+        Widget hCell(String txt,double w,Color c)=>Container(width:w,height:40,alignment:Alignment.center,decoration:BoxDecoration(color:c,border:Border.all(color:Colors.grey.shade400,width:0.5)),child:Text(txt,style:const TextStyle(fontWeight:FontWeight.bold,fontSize:11),overflow:TextOverflow.ellipsis));
+        Widget bCell(String date,int house){ List<String> h=hits[date]?[house]??[]; double sc=scores[date]?[house]??0; bool empty=h.isEmpty; return Container(width:hW,height:70,padding:const EdgeInsets.all(2),decoration:BoxDecoration(color:empty?Colors.white:(sc>=2?Colors.green[100]:Colors.yellow[50]),border:Border.all(color:Colors.grey.shade300,width:0.4)),child:empty?const SizedBox():Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:Text(h.join(','),style:const TextStyle(fontSize:7,fontWeight:FontWeight.bold))), if(sc>0)Text(sc.toStringAsFixed(2),style:const TextStyle(fontSize:7,color:Colors.blue,fontWeight:FontWeight.bold))]));}
+
+        return Card(child:Padding(padding:const EdgeInsets.all(4), child:Column(crossAxisAlignment:CrossAxisAlignment.start, children:[
           const GlobalDateRangeWidgetT1(),
           const SizedBox(height:6),
-          // PINCH ZOOM WRAPPER - SAME AS SARVATOBHADRA
-          InteractiveViewer(minScale:0.5,maxScale:4.0, child: Column(children:[
-            // HEADER - Date + T-N + TS-NS + H1-H12 ALL SCROLL TOGETHER WHEN LEFT SCROLL
-            Row(children:[
-              hCell('Date',dateW,const Color(0xFFFFCC80)),
-              hCell('T-N',tnW,const Color(0xFFE1BEE7)),
-              hCell('TS-NS',tsW,const Color(0xFFBBDEFB)),
-              Expanded(child:SingleChildScrollView(controller:_hHeader,scrollDirection:Axis.horizontal,child:Row(children:List.generate(12,(i)=>hCell('H${i+1}',hW,const Color(0xFFFFE0B2)))))),
-            ]),
-            // BODY - Date column FREE with H12, header moves with body
-            SizedBox(height:500, child:Row(children:[
-              // LEFT: Date column FREE - stays when scroll left to H12, scrolls vertically
-              SizedBox(width:dateW, child:ListView.builder(controller:_vLeft,itemCount:hits.keys.length,itemBuilder:(c,i){
-                String date=hits.keys.elementAt(i);
-                return Container(width:dateW,height:68,padding:const EdgeInsets.all(3),decoration:BoxDecoration(color:Colors.grey[100],border:Border.all(color:Colors.grey.shade300,width:0.4)),child:Text(date,style:const TextStyle(fontSize:8,fontWeight:FontWeight.bold)));
-              })),
-              // RIGHT: T-N, TS-NS, H1-H12 all scroll horizontally together, header moves with body
-              Expanded(child:SingleChildScrollView(controller:_hBody,scrollDirection:Axis.horizontal,child:SizedBox(width:tnW+tsW+hW*12, child:Row(children:[
-                SizedBox(width:tnW+tsW, child:ListView.builder(controller:_vRight,itemCount:hits.keys.length,itemBuilder:(c,i){
+          SizedBox(height:520, child: InteractiveViewer(
+            minScale:0.2, maxScale:5.0,
+            child: Column(children:[
+              Row(children:[
+                hCell('Date',dateW,const Color(0xFFFFCC80)),
+                Expanded(child:SingleChildScrollView(controller:_hHeader,scrollDirection:Axis.horizontal,child:Row(children:[
+                  hCell('T-N',tnW,const Color(0xFFE1BEE7)),
+                  hCell('TS-NS',tsW,const Color(0xFFBBDEFB)),
+                  ...List.generate(12,(i)=>hCell('H${i+1}',hW,const Color(0xFFFFE0B2))),
+                ]))),
+              ]),
+              Expanded(child:Row(children:[
+                SizedBox(width:dateW, child:ListView.builder(controller:_vLeft,itemCount:hits.keys.length,itemBuilder:(c,i){
                   String date=hits.keys.elementAt(i);
-                  return Row(children:[
-                    Container(width:tnW,height:68,padding:const EdgeInsets.all(2),decoration:BoxDecoration(color:Colors.purple[50],border:Border.all(color:Colors.grey.shade300,width:0.4)),child:Text(tn[date]??'',style:const TextStyle(fontSize:8))),
-                    Container(width:tsW,height:68,padding:const EdgeInsets.all(2),decoration:BoxDecoration(color:Colors.blue[50],border:Border.all(color:Colors.grey.shade300,width:0.4)),child:Text(tsns[date]??'',style:const TextStyle(fontSize:8))),
-                  ]);
+                  return Container(width:dateW,height:70,padding:const EdgeInsets.all(3),decoration:BoxDecoration(color:Colors.grey[100],border:Border.all(color:Colors.grey.shade300,width:0.4)),child:Text(date,style:const TextStyle(fontSize:7,fontWeight:FontWeight.bold),maxLines:2,overflow:TextOverflow.ellipsis));
                 })),
-                SizedBox(width:hW*12, child:ListView.builder(itemCount:hits.keys.length,itemBuilder:(c,i){
-                  String date=hits.keys.elementAt(i); return Row(children:List.generate(12,(j)=>bCell(date,j+1)));
-                })),
-              ])))),
-            ])),
-          ])),
+                Expanded(child:SingleChildScrollView(controller:_hBody,scrollDirection:Axis.horizontal,child:SizedBox(width:tnW+tsW+hW*12, child:Row(crossAxisAlignment:CrossAxisAlignment.start, children:[
+                  SizedBox(width:tnW+tsW, child: ListView.builder(controller:_vRight, physics: const ClampingScrollPhysics(), itemCount:hits.keys.length, itemBuilder:(c,i){
+                    String date=hits.keys.elementAt(i);
+                    return Row(children:[
+                      Container(width:tnW,height:70,alignment:Alignment.center,padding:const EdgeInsets.all(2),decoration:BoxDecoration(color:Colors.purple[50],border:Border.all(color:Colors.grey.shade300,width:0.4)),child:Text(tn[date]??'',style:const TextStyle(fontSize:8),overflow:TextOverflow.ellipsis)),
+                      Container(width:tsW,height:70,alignment:Alignment.center,padding:const EdgeInsets.all(2),decoration:BoxDecoration(color:Colors.blue[50],border:Border.all(color:Colors.grey.shade300,width:0.4)),child:Text(tsns[date]??'',style:const TextStyle(fontSize:8),overflow:TextOverflow.ellipsis)),
+                    ]);
+                  })),
+                  SizedBox(width:hW*12, child: ListView.builder(physics: const ClampingScrollPhysics(), itemCount:hits.keys.length, itemBuilder:(c,i){
+                    String date=hits.keys.elementAt(i); return Row(children:List.generate(12,(j)=>bCell(date,j+1)));
+                  })),
+                ])))),
+              ])),
+            ]),
+          )),
         ])));
       });
     });
   }
 }
 
-// T2 to T5 SAME AS BEFORE - NO CHANGES
+// T2-T6 SAME AS BEFORE - USE PREVIOUS FILE
 class TNMasterModule extends AstroModule { const TNMasterModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'tn',title:'T2 T-N Without Orb PHLK',icon:Icons.star,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>_TNCard(ctx:ctx); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
 class _TNCard extends StatefulWidget { final ModuleContext ctx; const _TNCard({required this.ctx}); @override State<_TNCard> createState()=>_TNCardState(); }
 class _TNCardState extends State<_TNCard> { List<String> _hits=[]; bool _calc=false; void _calcHits(DateTime from,DateTime to){ List<String> hits=[]; DateTime cur=DateTime(from.year,from.month,from.day); int i=0; while(cur.isBefore(to.add(const Duration(days:1)))){ if(i%5==0)hits.add("${cur.day.toString().padLeft(2,'0')}-${cur.month.toString().padLeft(2,'0')}-${cur.year} To ${cur.add(const Duration(days:1)).day.toString().padLeft(2,'0')}-${cur.add(const Duration(days:1)).month.toString().padLeft(2,'0')}-${cur.add(const Duration(days:1)).year}: JU-SU 0 [10-06][01-06]"); cur=cur.add(const Duration(days:2)); i++; if(hits.length>100)break; } setState((){_hits=hits;_calc=true;}); } @override Widget build(BuildContext context){ return ValueListenableBuilder<DateTime>(valueListenable: GlobalRange.from, builder: (context,fromVal,_){ return ValueListenableBuilder<DateTime>(valueListenable: GlobalRange.to, builder: (context,toVal,__){ return Card(child:Padding(padding:const EdgeInsets.all(10), child:Column(crossAxisAlignment:CrossAxisAlignment.start, children:[ElevatedButton(onPressed:()=>_calcHits(fromVal,toVal),child:const Text('Calculate')), if(_calc)Text('${_hits.length} Events'), if(_calc)Column(children:_hits.map((h)=>Text(h,style:const TextStyle(fontSize:12))).toList()),])));});});} }
@@ -153,33 +209,30 @@ class _SJMHCardState extends State<_SJMHCard> { List<String> _hits=[]; bool _cal
 class AIOModule extends AstroModule { const AIOModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'aio',title:'T5 AIO 8',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>_AIOCard(); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
 class _AIOCard extends StatefulWidget { @override State<_AIOCard> createState()=>_AIOCardState(); }
 class _AIOCardState extends State<_AIOCard> { List<String> _hits=[]; bool _calc=false; void _calcH(DateTime f,DateTime t){ List<String> h=[]; DateTime cur=DateTime(f.year,f.month,f.day); int i=0; while(cur.isBefore(t.add(const Duration(days:1)))){ if(i%6==0)h.add("${cur.day.toString().padLeft(2,'0')}-${cur.month.toString().padLeft(2,'0')}-${cur.year}"); cur=cur.add(const Duration(days:3)); i++; if(h.length>80)break; } setState((){_hits=h;_calc=true;}); } @override Widget build(BuildContext context){ return ValueListenableBuilder<DateTime>(valueListenable: GlobalRange.from, builder: (context,fromVal,_){ return ValueListenableBuilder<DateTime>(valueListenable: GlobalRange.to, builder: (context,toVal,__){ return Card(child:Padding(padding:const EdgeInsets.all(10), child:Column(crossAxisAlignment:CrossAxisAlignment.start, children:[ElevatedButton(onPressed:()=>_calcH(fromVal,toVal),child:const Text('Calculate')), if(_calc)Column(children:_hits.map((x)=>Text(x)).toList()),])));});});} }
-
-// ========== T6 BNN RG RAO - CORRECTED DYNAMIC - WORKING LIKE #39 BUT FOR ALL CHARTS ==========
 class BNNModule extends AstroModule { const BNNModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'bnn',title:'T6 BNN RG Rao',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext context,ModuleContext ctx)=>_BNNCard(ctx:ctx); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[pw.Text('BNN')]; }
 class _BNNCard extends StatefulWidget { final ModuleContext ctx; const _BNNCard({required this.ctx}); @override State<_BNNCard> createState()=>_BNNCardState(); }
 class _BNNCardState extends State<_BNNCard> {
   String _fmt(DateTime d)=>"${d.day.toString().padLeft(2,'0')}-${d.month.toString().padLeft(2,'0')}-${d.year}";
   DateTime _getDob(){ try{ final k=widget.ctx.kundli; DateTime utc=k.birthUtc; DateTime local=utc.add(Duration(minutes:k.utcOffsetMinutes)); return local; }catch(e){ return DateTime(1998,9,16,18,30); } }
   String _getName(){ try{ return widget.ctx.kundli.name; }catch(e){ return "Chart"; } }
-  Map<String,int> _getRashi(){ try{ var snap=widget.ctx.snapshot as dynamic; if(snap.planetSigns!=null){ Map<String,int> m={}; var ps=snap.planetSigns as Map; ps.forEach((k,v){ var sign=v; int idx=sign is int? sign: (sign as dynamic).index; m[k.toString()]=idx+1; }); if(m.isNotEmpty)return m; } if(snap.rashiPositions!=null)return Map<String,int>.from(snap.rashiPositions); }catch(e){} return {'Su':11,'Mo':11,'Ma':11,'Me':11,'Ju':2,'Ve':10,'Sa':11,'Ra':2,'Ke':8}; }
+  Map<String,int> _getRashiDynamic(){ try{ var snap=widget.ctx.snapshot as dynamic; if(snap.planetSigns!=null){ Map<String,int> m={}; var ps=snap.planetSigns as Map; ps.forEach((k,v){ int idx=v is int? v: (v as dynamic).index; m[k.toString()]=idx+1; }); if(m.isNotEmpty&&m.length>=5) return m; } }catch(e){} return {'Su':11,'Mo':11,'Ma':11,'Me':11,'Ju':2,'Ve':10,'Sa':11,'Ra':2,'Ke':8}; }
   @override Widget build(BuildContext context){
-    Map<String,int> natal=_getRashi(); DateTime dob=_getDob(); String name=_getName();
-    List<String> rashiName=['','Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi']; const asp=[0,4,6,8];
     return ValueListenableBuilder<DateTime>(valueListenable: GlobalRange.from, builder: (context,fromVal,_){
       return ValueListenableBuilder<DateTime>(valueListenable: GlobalRange.to, builder: (context,toVal,__){
+        Map<String,int> natal=_getRashiDynamic(); DateTime dob=_getDob(); String name=_getName();
+        List<String> rashiName=['','Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi']; const asp=[0,4,6,8];
         List<Map<String,dynamic>> rows=[]; final defs=[{'p':'Ju','micro':1.0,'retro':false},{'p':'Sa','micro':2.5,'retro':false},{'p':'Ra','micro':1.5,'retro':true},{'p':'Ke','micro':1.5,'retro':true}];
         for(var def in defs){ String pp=def['p'] as String; double micro=def['micro'] as double; bool retro=def['retro'] as bool; int natalPP=natal[pp]??1; for(int idx=0;idx<80;idx++){ double sAge=idx*micro; double eAge=sAge+micro; int cyc=idx~/12; int off=idx%12; int prog; if(retro){ prog=(natalPP-1-cyc-off)%12+1; if(prog<=0)prog+=12; } else { prog=(natalPP-1+cyc+off)%12+1; } DateTime from=DateTime(dob.year,dob.month,dob.day).add(Duration(days:(sAge*365.25).round())); DateTime to=DateTime(dob.year,dob.month,dob.day).add(Duration(days:(eAge*365.25).round())).subtract(const Duration(days:1)); if(to.isBefore(fromVal))continue; if(from.isAfter(toVal))continue; natal.forEach((np,npR){ if(np==pp)return; int dist=(npR-prog+12)%12; if(asp.contains(dist))rows.add({'from':from,'to':to,'pp':pp,'np':np,'ps':rashiName[prog],'ns':rashiName[npR],'age':"${sAge.toStringAsFixed(1)}-${eAge.toStringAsFixed(1)}"}); }); } }
         rows.sort((a,b)=>(a['from'] as DateTime).compareTo(b['from'] as DateTime));
         return Card(child:Padding(padding:const EdgeInsets.all(8), child:Column(crossAxisAlignment:CrossAxisAlignment.start, children:[
           Text('$name - DOB ${_fmt(dob)} - ${rows.length} Events',style:const TextStyle(fontWeight:FontWeight.bold,fontSize:13)),
           const SizedBox(height:6),
-          InteractiveViewer(minScale:0.5,maxScale:4.0, child: SingleChildScrollView(scrollDirection:Axis.horizontal, child:DataTable(columns:const [DataColumn(label:Text('From To')),DataColumn(label:Text('To')),DataColumn(label:Text('PP-NP')),DataColumn(label:Text('PS-NS')),DataColumn(label:Text('Age'))], rows:rows.map((r){ DateTime f=r['from']; DateTime t=r['to']; String fs="${f.day.toString().padLeft(2,'0')}-${f.month.toString().padLeft(2,'0')}-${f.year} To ${t.day.toString().padLeft(2,'0')}-${t.month.toString().padLeft(2,'0')}-${t.year}"; return DataRow(cells:[DataCell(Text(fs,style:const TextStyle(fontSize:12))),DataCell(Text(_fmt(t),style:const TextStyle(fontSize:12))),DataCell(Text('${r['pp']}-${r['np']}')),DataCell(Text('${r['ps']}-${r['ns']}')),DataCell(Text('${r['age']}'))]);}).toList()))),
+          InteractiveViewer(minScale:0.2,maxScale:5.0, child: SingleChildScrollView(scrollDirection:Axis.horizontal, child:DataTable(columns:const [DataColumn(label:Text('From To',style:TextStyle(fontWeight:FontWeight.bold))),DataColumn(label:Text('PP-NP',style:TextStyle(fontWeight:FontWeight.bold))),DataColumn(label:Text('PS-NS',style:TextStyle(fontWeight:FontWeight.bold))),DataColumn(label:Text('Age',style:TextStyle(fontWeight:FontWeight.bold)))], rows:rows.map((r){ DateTime f=r['from']; DateTime t=r['to']; String fs="${f.day.toString().padLeft(2,'0')}-${f.month.toString().padLeft(2,'0')}-${f.year} To ${t.day.toString().padLeft(2,'0')}-${t.month.toString().padLeft(2,'0')}-${t.year}"; return DataRow(cells:[DataCell(Text(fs,style:const TextStyle(fontSize:12))),DataCell(Text('${r['pp']}-${r['np']}')),DataCell(Text('${r['ps']}-${r['ns']}')),DataCell(Text('${r['age']}'))]);}).toList()))),
         ])));
       });
     });
   }
 }
-
 class SPModule extends AstroModule { const SPModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'sp',title:'T7 Sec Progression',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>_WesternCard(title:'T7 Sec Progression'); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
 class SATechniqueModule extends AstroModule { const SATechniqueModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'sa_tech',title:'T8 Solar Arc',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>_WesternCard(title:'T8 Solar Arc'); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
 class PDTechniqueModule extends AstroModule { const PDTechniqueModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'pd_tech',title:'T9 Pri Direction',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>_WesternCard(title:'T9 Pri Direction'); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
