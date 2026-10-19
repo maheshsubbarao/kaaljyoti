@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,17 +13,18 @@ import 'core/constants.dart';
 import 'data/settings_repository.dart';
 
 Future<void> main() async {
-  if (kSentryDsn.isNotEmpty &&!kDebugMode) {
+  if (kSentryDsn.isNotEmpty && !kDebugMode) {
     await SentryFlutter.init(
       (options) {
         options.dsn = kSentryDsn;
         options.tracesSampleRate = 0;
         options.beforeSend = (event, hint) {
           final t = event.throwable;
-          final offlineNoise = t is SocketException ||
-              t is AuthRetryableFetchException ||
-              (t!= null && t.toString().contains('SocketException'));
-          return offlineNoise? null : event;
+          final msg = t?.toString() ?? '';
+          final offlineNoise = msg.contains('SocketException') || 
+                               msg.contains('AuthRetryableFetchException') ||
+                               t is AuthRetryableFetchException;
+          return offlineNoise ? null : event;
         };
       },
       appRunner: _run,
@@ -36,7 +36,7 @@ Future<void> main() async {
 
 Future<void> _run() async {
   WidgetsFlutterBinding.ensureInitialized();
-  GoogleFonts.config.allowRuntimeFetching = false;
+  GoogleFonts.config.allowRuntimeFetching = true; // FIXED FROM false
 
   try {
     await EphemerisService.init().timeout(const Duration(seconds: 30));

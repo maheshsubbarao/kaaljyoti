@@ -43,6 +43,8 @@ dependencies:
   package_info_plus: ^9.0.1
   lat_lng_to_timezone: ^0.2.0
   share_plus: ^12.0.2
+  sqflite: ^2.4.4+2
+  sqflite_common_ffi_web: ^1.2.0
 
 dev_dependencies:
   flutter_test:
