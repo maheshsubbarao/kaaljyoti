@@ -134,7 +134,7 @@ class D9TechniqueModule extends AstroModule { const D9TechniqueModule(); @overri
 class SJMHModule extends AstroModule { const SJMHModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'sjmh',title:'T4 SJMH 9',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>Card(child:Padding(padding:const EdgeInsets.all(10),child:Text('T4'))); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
 class AIOModule extends AstroModule { const AIOModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'aio',title:'T5 AIO 8',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>Card(child:Padding(padding:const EdgeInsets.all(10),child:Text('T5'))); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
 
-// ========== T6 BNN RG RAO - RESTORED FROM COMMIT 6053636 + DYNAMIC ==========
+// ========== T6 BNN RG RAO - RESTORED 6053636 - NO ASPECT FILTER - SHOWS Ju Sa Ra Ke ==========
 class BNNModule extends AstroModule { const BNNModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'bnn',title:'T6 BNN RG RAO',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext context,ModuleContext ctx)=>_BNNCard(ctx:ctx); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[pw.Text('BNN')]; }
 class _BNNCard extends ConsumerStatefulWidget { final ModuleContext ctx; const _BNNCard({required this.ctx}); @override ConsumerState<_BNNCard> createState()=>_BNNCardState(); }
 class _BNNCardState extends ConsumerState<_BNNCard> {
@@ -153,7 +153,7 @@ class _BNNCardState extends ConsumerState<_BNNCard> {
       });
       if(m.isNotEmpty&&m.length>=5)return m;
     }catch(e){}
-    return {'Su':11,'Mo':11,'Ma':11,'Me':11,'Ju':2,'Ve':10,'Sa':11,'Ra':2,'Ke':8}; // fallback from 6053636
+    return {'Su':11,'Mo':11,'Ma':11,'Me':11,'Ju':2,'Ve':10,'Sa':11,'Ra':2,'Ke':8};
   }
   @override Widget build(BuildContext context){
     return ValueListenableBuilder<DateTime>(valueListenable: GlobalRange.from, builder: (context,fromVal,_){
@@ -161,8 +161,6 @@ class _BNNCardState extends ConsumerState<_BNNCard> {
         Map<String,int> natal=_getRashiDynamic();
         DateTime dob=_getDob(); String name=_getName();
         List<String> rashiName=['','Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'];
-        // RESTORED FROM 6053636: aspect includes 0,1,2,5,6,9,10 etc - using ALL to ensure Ju,Ra,Ke show
-        const asp=[0,1,2,3,4,5,6,7,8,9,10,11];
         List<Map<String,dynamic>> rows=[]; 
         final defs=[{'p':'Ju','micro':1.0,'retro':false},{'p':'Sa','micro':2.5,'retro':false},{'p':'Ra','micro':1.5,'retro':true},{'p':'Ke','micro':1.5,'retro':true}];
         for(var def in defs){
@@ -174,7 +172,8 @@ class _BNNCardState extends ConsumerState<_BNNCard> {
             DateTime to=DateTime(dob.year,dob.month,dob.day).add(Duration(days:(eAge*365.25).round())).subtract(const Duration(days:1));
             if(to.isBefore(fromVal))continue; 
             if(from.isAfter(toVal))continue;
-            natal.forEach((np,npR){ if(np==pp)return; int dist=(npR-prog+12)%12; if(asp.contains(dist))rows.add({'from':from,'to':to,'pp':pp,'np':np,'ps':rashiName[prog],'ns':rashiName[npR],'age':"${sAge.toStringAsFixed(1)}-${eAge.toStringAsFixed(1)}"}); });
+            // 6053636 had NO aspect check - so all NP show - Ju,Ra,Ke now show
+            natal.forEach((np,npR){ if(np==pp)return; rows.add({'from':from,'to':to,'pp':pp,'np':np,'ps':rashiName[prog],'ns':rashiName[npR],'age':"${sAge.toStringAsFixed(1)}-${eAge.toStringAsFixed(1)}"}); });
           }
         }
         rows.sort((a,b)=>(a['from'] as DateTime).compareTo(b['from'] as DateTime));
