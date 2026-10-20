@@ -15,6 +15,7 @@ bool _asp(int f,String p,int t){ for(var o in _off(p)){ int h=f+o; while(h>12)h-
 Map<int,String> getLordsForAsc(int asc){ const lm=['','Ma','Ve','Me','Mo','Su','Me','Ve','Ma','Ju','Sa','Sa','Ju']; Map<int,String> l={}; for(int h=1;h<=12;h++){ int s=((asc-1+h-1)%12)+1; l[h]=lm[s]; } return l; }
 Map<String,List<int>> getOwn(Map<int,String> lords){ Map<String,List<int>> o={}; lords.forEach((h,lord){ o.putIfAbsent(lord,()=>[]); o[lord]!.add(h); }); return o; }
 String _planetToAbbr(Planet p){ switch(p){ case Planet.sun: return 'Su'; case Planet.moon: return 'Mo'; case Planet.mars: return 'Ma'; case Planet.mercury: return 'Me'; case Planet.jupiter: return 'Ju'; case Planet.venus: return 'Ve'; case Planet.saturn: return 'Sa'; case Planet.rahu: return 'Ra'; case Planet.ketu: return 'Ke'; default: return 'Me'; } }
+String _lordOfSign(int sign){ const lm=['','Ma','Ve','Me','Mo','Su','Me','Ve','Ma','Ju','Sa','Sa','Ju']; return lm[sign]; }
 
 class GlobalRange {
   static ValueNotifier<DateTime> from = ValueNotifier(DateTime(DateTime.now().year,1,1));
@@ -37,12 +38,11 @@ class GlobalDateRangeWidgetT1 extends StatelessWidget {
   }
 }
 
-// ================= T1 DASHA TECHNIQUE =================
 class MDTechniqueModule extends AstroModule {
   const MDTechniqueModule();
-  @override ModuleMeta get meta => const ModuleMeta(id:'md',title:'T1 Dasha Technique',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full);
+  @override ModuleMeta get meta => const ModuleMeta(id:'md',title:'T1 T-N Aspects',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full);
   @override Widget cardView(BuildContext context,ModuleContext ctx) => _DashaFullCard(ctx:ctx);
-  @override List<pw.Widget> pdfView(ModuleContext ctx) => [pw.Text('T1')];
+  @override List<pw.Widget> pdfView(ModuleContext ctx) => [pw.Text('T1 T-N Aspects')];
 }
 
 class _DashaFullCard extends ConsumerStatefulWidget { 
@@ -62,6 +62,7 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
     return ValueListenableBuilder<DateTime>(valueListenable: GlobalRange.from, builder: (context,fromVal,_){
       return ValueListenableBuilder<DateTime>(valueListenable: GlobalRange.to, builder: (context,toVal,__){
         List<Map<String,dynamic>> rows=[];
+        Map<String,double> bestDiffMap={};
         try{
           final chalitData=computeChalit(snap, ChalitSystem.sripati);
           Map<String,int> natalH={}; 
@@ -74,21 +75,19 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
           final lords=getLordsForAsc(asc); 
           final own=getOwn(lords);
           final karaka={1:'Su',2:'Ju',3:'Ma',4:'Ve',5:'Ju',6:'Ma',7:'Ve',8:'Sa',9:'Ju',10:'Su',11:'Ju',12:'Sa'};
-          DateTime cur=DateTime(fromVal.year,fromVal.month,fromVal.day,8,52);
-          int iter=0;
-          while(cur.isBefore(toVal.add(const Duration(days:1))) && rows.length<80 && iter<2000){
+          
+          int moonSign = natalLon.containsKey('Mo') ? ((natalLon['Mo']! ~/30)+1) : 11;
+          int daysTotal = toVal.difference(fromVal).inDays+1;
+          if(daysTotal>366) daysTotal=366;
+          if(daysTotal<1) daysTotal=1;
+          
+          for(int dayIdx=0; dayIdx<daysTotal; dayIdx++){
+            DateTime curDay = DateTime(fromVal.year,fromVal.month,fromVal.day).add(Duration(days:dayIdx));
+            DateTime cur = DateTime(curDay.year,curDay.month,curDay.day,8,52);
             try{
               var tPos=transit.currentTransitPositions(ayanamsaId: snap.ayanamsaId, at: cur);
-              var dashaResult=widget.ctx.dasha(DashaSystem.vimshottari);
-              var chain=dashaResult.chainAt(cur.toUtc());
-              String mdAb=''; String adAb='';
-              if(chain.isNotEmpty&&chain[0].planet!=null)mdAb=_planetToAbbr(chain[0].planet!);
-              if(chain.length>1&&chain[1].planet!=null)adAb=_planetToAbbr(chain[1].planet!);
-              List<String> mdAd=[mdAb,adAb].where((e)=>e.isNotEmpty).toList();
-              if(mdAd.isEmpty)mdAd=['Me'];
               for(var tEntry in tPos.values){
                 String tpAb=_planetToAbbr(tEntry.planet);
-                if(!mdAd.contains(tpAb))continue;
                 double tLon=tEntry.longitude; 
                 int tHouse=_houseFromLong(tLon, chalitData);
                 for(var nEntry in snap.positions.entries){
@@ -97,50 +96,81 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
                   int nHouse=natalH[npAb]??_houseFromLong(nLon, chalitData);
                   double tDeg=tLon%30; double nDeg=nLon%30;
                   double diff=(tDeg-nDeg).abs(); if(diff>15)diff=30-diff;
-                  if(diff<1.2 && _asp(tHouse,tpAb,nHouse)){
-                    String dateStr="${cur.day.toString().padLeft(2,'0')}-${cur.month.toString().padLeft(2,'0')}-${cur.year} ${cur.hour.toString().padLeft(2,'0')}:${cur.minute.toString().padLeft(2,'0')}";
-                    String tnVal="$tpAb-$npAb";
-                    List<String> rashiShort=['','Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'];
-                    int tSign=(tLon~/30)+1; int nSign=(nLon~/30)+1;
-                    String tsnsVal="${rashiShort[tSign]}-${rashiShort[nSign]}";
-                    Map<int,List<String>> houseTags={};
-                    for(int req=1;req<=12;req++){
-                      List<String> tags=[];
-                      if((own[tpAb]??[]).contains(req)){
-                        if(tpAb==mdAb)tags.add("${tpAb}MD${_hh(req)}"); else tags.add("${tpAb}AD${_hh(req)}");
+                  if(diff<1.5 && _asp(tHouse,tpAb,nHouse)){
+                    String dayKey="${curDay.day}-${curDay.month}-${curDay.year}-${tpAb}-${npAb}";
+                    double prevBest = bestDiffMap[dayKey] ?? 999;
+                    if(diff < prevBest){
+                      bestDiffMap[dayKey]=diff;
+                      String dateStr="${curDay.day.toString().padLeft(2,'0')}-${curDay.month.toString().padLeft(2,'0')}-${curDay.year} ${cur.hour.toString().padLeft(2,'0')}:${cur.minute.toString().padLeft(2,'0')}";
+                      String tnVal="$tpAb-$npAb";
+                      List<String> rashiShort=['','Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'];
+                      int tSign=(tLon~/30)+1; int nSign=(nLon~/30)+1;
+                      String tsnsVal="${rashiShort[tSign]}-${rashiShort[nSign]}";
+                      Map<int,List<String>> houseTags={};
+                      for(int req=1;req<=12;req++){
+                        List<String> tags=[];
+                        if((own[tpAb]??[]).contains(req)){
+                          tags.add("${tpAb}AD${_hh(req)}");
+                        }
+                        if(tHouse==req){
+                          tags.add("${tpAb}-${_hh(req)}H");
+                        }
+                        String rLord=lords[req]!; int rLordH=natalH[rLord]??12;
+                        String k=karaka[req]!; int kH=natalH[k]??12;
+                        int kSign = natalLon.containsKey(k) ? ((natalLon[k]! ~/30)+1) : 1;
+                        int lfkSign = ((kSign-1+req-1)%12)+1;
+                        String lfkLord = _lordOfSign(lfkSign);
+                        int lfkLordH = natalH[lfkLord]??12;
+                        int hfmSign = ((moonSign-1+req-1)%12)+1;
+                        int hfmSignHouse = ((hfmSign - asc + 12)%12)+1;
+                        String lfmLord = _lordOfSign(hfmSign);
+                        int lfmLordH = natalH[lfmLord]??12;
+                        int hfkSign = ((kSign-1+req-1)%12)+1;
+                        int hfkHouse = ((hfkSign - asc +12)%12)+1;
+
+                        if(_asp(tHouse,tpAb,req))tags.add("${_hh(req)}H");
+                        if(_asp(tHouse,tpAb,rLordH))tags.add("${_hh(req)}L");
+                        if(_asp(tHouse,tpAb,kH)){
+                          tags.add("${_hh(req)}K");
+                          tags.add("${_hh(req)}JK");
+                        }
+                        if(_asp(tHouse,tpAb,lfkLordH))tags.add("${_hh(req)}LFK");
+                        if(_asp(tHouse,tpAb,hfkHouse))tags.add("${_hh(req)}HFK");
+                        if(_asp(tHouse,tpAb,hfmSignHouse))tags.add("${_hh(req)}HFM");
+                        if(_asp(tHouse,tpAb,lfmLordH))tags.add("${_hh(req)}LFM");
+                        
+                        if(tags.isNotEmpty)houseTags[req]=tags.toSet().take(4).toList();
                       }
-                      String rLord=lords[req]!; int rLordH=natalH[rLord]??12;
-                      String k=karaka[req]!; int kH=natalH[k]??12;
-                      if(_asp(tHouse,tpAb,req))tags.add("${_hh(req)}H");
-                      if(_asp(tHouse,tpAb,rLordH))tags.add("${_hh(req)}L");
-                      if(_asp(tHouse,tpAb,kH))tags.add("${_hh(req)}K");
-                      tags.add("${_hh(req)}LFK");
-                      tags.add("${_hh(req)}HFM");
-                      if(tags.isNotEmpty)houseTags[req]=tags.take(3).toList();
+                      int existingIdx = rows.indexWhere((r)=> r['key']==dayKey);
+                      if(existingIdx>=0){
+                        rows[existingIdx]={'key':dayKey,'date':dateStr,'tn':tnVal,'tsns':tsnsVal,'tags':houseTags,'diff':diff};
+                      } else {
+                        rows.add({'key':dayKey,'date':dateStr,'tn':tnVal,'tsns':tsnsVal,'tags':houseTags,'diff':diff});
+                      }
                     }
-                    rows.add({'date':dateStr,'tn':tnVal,'tsns':tsnsVal,'tags':houseTags});
                   }
                 }
               }
             }catch(e){}
-            cur=cur.add(const Duration(hours:12)); iter++;
           }
         }catch(e){}
-
-        if(rows.isEmpty){
-          rows=[
-            {'date':'16-07-1996 08:52','tn':'Me-Ve','tsns':'Cn-Cp','tags':{3:['03L'],4:['MEMD04','04K'],7:['MEMD07','07K','01LD9'],8:['08L'],11:['11AP']}},
-            {'date':'04-09-1996 11:17','tn':'Me-07H','tsns':'Vi-Vi','tags':{4:['04HD4'],7:['07H'],11:['01HD11']}},
-            {'date':'05-09-1996 14:30','tn':'Me-Ju','tsns':'Vi-Le','tags':{4:['04HD4'],7:['07LD9'],11:['01HD11']}},
-          ];
-        }
+        
+        rows.sort((a,b){
+          try{
+            List<String> pa=(a['date'] as String).split(' ')[0].split('-');
+            List<String> pb=(b['date'] as String).split(' ')[0].split('-');
+            DateTime da=DateTime(int.parse(pa[2]),int.parse(pa[1]),int.parse(pa[0]));
+            DateTime dbb=DateTime(int.parse(pb[2]),int.parse(pb[1]),int.parse(pb[0]));
+            return da.compareTo(dbb);
+          }catch(_){return 0;}
+        });
 
         return Card(child:Padding(padding:const EdgeInsets.all(6), child:Column(crossAxisAlignment:CrossAxisAlignment.start, children:[
           const GlobalDateRangeWidgetT1(),
           const SizedBox(height:6),
-          Text('${rows.length} Events - MD/AD Exact Degree (Bhava Madhya) - Autofit',style:const TextStyle(fontWeight:FontWeight.bold,fontSize:11,color:Colors.deepOrange)),
+          Text('${rows.length} Events - T-N Exact Full Year',style:const TextStyle(fontWeight:FontWeight.bold,fontSize:11,color:Colors.deepOrange)),
           const SizedBox(height:6),
-          SizedBox(height:500, child: PinchZoom(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: SingleChildScrollView(scrollDirection: Axis.vertical, child: DataTable(
+          SizedBox(height:600, child: PinchZoom(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: SingleChildScrollView(scrollDirection: Axis.vertical, child: DataTable(
             columnSpacing:12,
             headingRowColor: MaterialStateProperty.all(Colors.orange[100]),
             columns: const [
@@ -169,7 +199,7 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
               for(int h=1;h<=12;h++){
                 List<String> list=tags[h]??[];
                 cells.add(DataCell(Container(
-                  constraints: const BoxConstraints(minWidth:60),
+                  constraints: const BoxConstraints(minWidth:65),
                   padding: const EdgeInsets.all(2),
                   child: Text(list.join('\n'),style: TextStyle(fontSize:9,fontWeight:FontWeight.bold,color: list.isEmpty?Colors.grey:Colors.black)),
                 )));
@@ -183,13 +213,10 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
   }
 }
 
-// Other techniques - stubs
-class TNMasterModule extends AstroModule { const TNMasterModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'tn',title:'T2 T-N Without Orb PHLK',icon:Icons.star,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>const Card(child: Padding(padding: EdgeInsets.all(20), child: Text('T2 coming'))); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
+class TNMasterModule extends AstroModule { const TNMasterModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'tn',title:'T2 Merged',icon:Icons.star,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>const Card(child: Padding(padding: EdgeInsets.all(20), child: Text('T2 Merged into T1'))); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
 class D9TechniqueModule extends AstroModule { const D9TechniqueModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'d9',title:'T3 D9 TOE',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>const Card(child: Padding(padding: EdgeInsets.all(20), child: Text('T3'))); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
 class SJMHModule extends AstroModule { const SJMHModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'sjmh',title:'T4 SJMH 9',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>const Card(child: Padding(padding: EdgeInsets.all(20), child: Text('T4'))); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
 class AIOModule extends AstroModule { const AIOModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'aio',title:'T5 AIO 8',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>const Card(child: Padding(padding: EdgeInsets.all(20), child: Text('T5'))); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
-
-// ================= T6 BNN - YOUR WORKING DYNAMIC VERSION =================
 class BNNModule extends AstroModule { const BNNModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'bnn',title:'T6 BNN RG Rao',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext context,ModuleContext ctx)=>_BNNCard(ctx:ctx); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[pw.Text('BNN')]; }
 class _BNNCard extends StatefulWidget { final ModuleContext ctx; const _BNNCard({required this.ctx}); @override State<_BNNCard> createState()=>_BNNCardState(); }
 class _BNNCardState extends State<_BNNCard> {
@@ -214,7 +241,6 @@ class _BNNCardState extends State<_BNNCard> {
     });
   }
 }
-
 class SPModule extends AstroModule { const SPModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'sp',title:'T7 Sec Progression',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>const Card(child: Padding(padding: EdgeInsets.all(20), child: Text('T7'))); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
 class SATechniqueModule extends AstroModule { const SATechniqueModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'sa_tech',title:'T8 Solar Arc',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>const Card(child: Padding(padding: EdgeInsets.all(20), child: Text('T8'))); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
 class PDTechniqueModule extends AstroModule { const PDTechniqueModule(); @override ModuleMeta get meta=>const ModuleMeta(id:'pd_tech',title:'T9 Pri Direction',icon:Icons.auto_awesome,category:'Techniques',defaultSpan:CardSpan.full); @override Widget cardView(BuildContext c,ModuleContext ctx)=>const Card(child: Padding(padding: EdgeInsets.all(20), child: Text('T9'))); @override List<pw.Widget> pdfView(ModuleContext ctx)=>[]; }
