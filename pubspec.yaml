@@ -44,13 +44,13 @@ dependencies:
   lat_lng_to_timezone: ^0.2.0
   share_plus: ^12.0.2
   sqflite: 2.4.2
+  sqflite_common_ffi: 2.3.6
   sqflite_common_ffi_web: 0.4.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-  sqflite_common_ffi: ^2.3.4
   plugin_platform_interface: ^2.1.8
   geolocator_platform_interface: ^4.2.8
   flutter_launcher_icons: ^0.14.1

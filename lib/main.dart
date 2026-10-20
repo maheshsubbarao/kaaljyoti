@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
+import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 import 'app.dart';
 import 'charts/chart_tuning.dart';
@@ -36,6 +38,13 @@ Future<void> main() async {
 
 Future<void> _run() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // FIX FOR WEB + APK DATABASE - ADD THIS BLOCK
+  if (kIsWeb) {
+    databaseFactory = databaseFactoryFfiWeb;
+  }
+  // END FIX - For APK it will use native factory automatically
+
   GoogleFonts.config.allowRuntimeFetching = true; // FIXED FROM false
 
   try {
