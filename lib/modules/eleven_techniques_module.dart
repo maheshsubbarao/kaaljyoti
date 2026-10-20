@@ -12,10 +12,26 @@ import '../widgetsystem/astro_module.dart';
 String _hh(int n) => n.toString().padLeft(2,'0');
 List<int> _off(String p){ switch(p){ case 'Ma': return [3,6,7]; case 'Ju': return [4,6,8]; case 'Sa': return [2,6,9]; case 'Ra': case 'Ke': return [4,6,8]; default: return [6]; } }
 bool _asp(int f,String p,int t){ for(var o in _off(p)){ int h=f+o; while(h>12)h-=12; if(h==t)return true; } return false; }
+bool _aspD9(double natalD9Deg,double transitDeg){ double diff=(natalD9Deg-transitDeg)%360; if(diff<0)diff+=360; int house=(diff~/30); return house==0||house==4||house==8; }
 Map<int,String> getLordsForAsc(int asc){ const lm=['','Ma','Ve','Me','Mo','Su','Me','Ve','Ma','Ju','Sa','Sa','Ju']; Map<int,String> l={}; for(int h=1;h<=12;h++){ int s=((asc-1+h-1)%12)+1; l[h]=lm[s]; } return l; }
 Map<String,List<int>> getOwn(Map<int,String> lords){ Map<String,List<int>> o={}; lords.forEach((h,lord){ o.putIfAbsent(lord,()=>[]); o[lord]!.add(h); }); return o; }
 String _planetToAbbr(Planet p){ switch(p){ case Planet.sun: return 'Su'; case Planet.moon: return 'Mo'; case Planet.mars: return 'Ma'; case Planet.mercury: return 'Me'; case Planet.jupiter: return 'Ju'; case Planet.venus: return 'Ve'; case Planet.saturn: return 'Sa'; case Planet.rahu: return 'Ra'; case Planet.ketu: return 'Ke'; default: return 'Me'; } }
 String _lordOfSign(int sign){ const lm=['','Ma','Ve','Me','Mo','Su','Me','Ve','Ma','Ju','Sa','Sa','Ju']; return lm[sign]; }
+int _d9Sign(double lon){
+  int rashi = (lon~/30)+1;
+  double deg = lon%30;
+  int navIndex = (deg*9/30).floor();
+  int movable=[1,4,7,10].contains(rashi)?0: [2,5,8,11].contains(rashi)?1:2;
+  int start= movable==0? rashi : movable==1? ((rashi+8-1)%12)+1 : ((rashi+4-1)%12)+1;
+  int d9 = ((start-1+navIndex)%12)+1;
+  return d9;
+}
+double _d9Lon(double lon){
+  int d9sign=_d9Sign(lon);
+  double deg=lon%30;
+  double navDeg = (deg*9)%30;
+  return (d9sign-1)*30+navDeg;
+}
 
 class GlobalRange {
   static ValueNotifier<DateTime> from = ValueNotifier(DateTime(DateTime.now().year,1,1));
@@ -75,8 +91,15 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
           final lords=getLordsForAsc(asc); 
           final own=getOwn(lords);
           final karaka={1:'Su',2:'Ju',3:'Ma',4:'Ve',5:'Ju',6:'Ma',7:'Ve',8:'Sa',9:'Ju',10:'Su',11:'Ju',12:'Sa'};
-          
           int moonSign = natalLon.containsKey('Mo') ? ((natalLon['Mo']! ~/30)+1) : 11;
+          
+          Map<int,double> natalLordD9={};
+          for(int req=1;req<=12;req++){
+            String lord=lords[req]!;
+            double lon=natalLon[lord]??0;
+            natalLordD9[req]=_d9Lon(lon);
+          }
+          
           int daysTotal = toVal.difference(fromVal).inDays+1;
           if(daysTotal>366) daysTotal=366;
           if(daysTotal<1) daysTotal=1;
@@ -86,10 +109,19 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
             DateTime cur = DateTime(curDay.year,curDay.month,curDay.day,8,52);
             try{
               var tPos=transit.currentTransitPositions(ayanamsaId: snap.ayanamsaId, at: cur);
+              Map<String,double> tLonMap={};
+              Map<String,int> tHouseMap={};
+              for(var e in tPos.values){
+                String ab=_planetToAbbr(e.planet);
+                tLonMap[ab]=e.longitude;
+                tHouseMap[ab]=_houseFromLong(e.longitude, chalitData);
+              }
+              
+              // 1. T-N Planet to Planet
               for(var tEntry in tPos.values){
                 String tpAb=_planetToAbbr(tEntry.planet);
                 double tLon=tEntry.longitude; 
-                int tHouse=_houseFromLong(tLon, chalitData);
+                int tHouse=tHouseMap[tpAb]??_houseFromLong(tLon, chalitData);
                 for(var nEntry in snap.positions.entries){
                   String npAb=_planetToAbbr(nEntry.key);
                   double nLon=nEntry.value.longitude;
@@ -109,12 +141,8 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
                       Map<int,List<String>> houseTags={};
                       for(int req=1;req<=12;req++){
                         List<String> tags=[];
-                        if((own[tpAb]??[]).contains(req)){
-                          tags.add("${tpAb}AD${_hh(req)}");
-                        }
-                        if(tHouse==req){
-                          tags.add("${tpAb}-${_hh(req)}H");
-                        }
+                        if((own[tpAb]??[]).contains(req)) tags.add("${tpAb}AD${_hh(req)}");
+                        if(tHouse==req) tags.add("${tpAb}-${_hh(req)}H");
                         String rLord=lords[req]!; int rLordH=natalH[rLord]??12;
                         String k=karaka[req]!; int kH=natalH[k]??12;
                         int kSign = natalLon.containsKey(k) ? ((natalLon[k]! ~/30)+1) : 1;
@@ -130,16 +158,40 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
 
                         if(_asp(tHouse,tpAb,req))tags.add("${_hh(req)}H");
                         if(_asp(tHouse,tpAb,rLordH))tags.add("${_hh(req)}L");
-                        if(_asp(tHouse,tpAb,kH)){
-                          tags.add("${_hh(req)}K");
-                          tags.add("${_hh(req)}JK");
-                        }
+                        if(_asp(tHouse,tpAb,kH)){ tags.add("${_hh(req)}K"); tags.add("${_hh(req)}JK"); }
                         if(_asp(tHouse,tpAb,lfkLordH))tags.add("${_hh(req)}LFK");
                         if(_asp(tHouse,tpAb,hfkHouse))tags.add("${_hh(req)}HFK");
                         if(_asp(tHouse,tpAb,hfmSignHouse))tags.add("${_hh(req)}HFM");
                         if(_asp(tHouse,tpAb,lfmLordH))tags.add("${_hh(req)}LFM");
                         
-                        if(tags.isNotEmpty)houseTags[req]=tags.toSet().take(4).toList();
+                        // D9 TOE
+                        double d9LordDeg=natalLordD9[req]??0;
+                        double tVe=tLonMap['Ve']??0; double tMa=tLonMap['Ma']??0; double tJu=tLonMap['Ju']??0; double tSa=tLonMap['Sa']??0; double tRa=tLonMap['Ra']??0; double tKe=tLonMap['Ke']??0;
+                        if(req==1 && _aspD9(d9LordDeg,tJu)) tags.add("D901");
+                        if(req==2 && _aspD9(d9LordDeg,tJu)) tags.add("D902");
+                        if(req==3 && _aspD9(d9LordDeg,tJu)) tags.add("D903");
+                        if(req==4){
+                          if(_aspD9(d9LordDeg,tSa)) tags.add("D904FB");
+                          if(_aspD9(d9LordDeg,tVe)||_aspD9(d9LordDeg,tMa)||_aspD9(d9LordDeg,tJu)) tags.add("D904VPM");
+                        }
+                        if(req==5 && _aspD9(d9LordDeg,tJu)) tags.add("D905");
+                        if(req==6){
+                          if(_aspD9(d9LordDeg,tMa)||_aspD9(d9LordDeg,tSa)||_aspD9(d9LordDeg,tRa)||_aspD9(d9LordDeg,tKe)) tags.add("D906");
+                        }
+                        if(req==7 && _aspD9(d9LordDeg,tJu)) tags.add("D907");
+                        if(req==8 && _aspD9(d9LordDeg,tSa)) tags.add("D908");
+                        if(req==9 && _aspD9(d9LordDeg,tJu)) tags.add("D909");
+                        if(req==10 && _aspD9(d9LordDeg,tJu)) tags.add("D910");
+                        if(req==11){
+                          if(_aspD9(d9LordDeg,tJu)) tags.add("D911");
+                          if(_aspD9(d9LordDeg,tSa)) tags.add("D911MB");
+                        }
+                        if(req==12){
+                          if(_aspD9(d9LordDeg,tRa)) tags.add("D912GB");
+                          if(_aspD9(d9LordDeg,tJu)) tags.add("D912FT");
+                        }
+                        
+                        if(tags.isNotEmpty)houseTags[req]=tags.toSet().take(5).toList();
                       }
                       int existingIdx = rows.indexWhere((r)=> r['key']==dayKey);
                       if(existingIdx>=0){
@@ -151,6 +203,30 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
                   }
                 }
               }
+              
+              // 2. T-N Planet to House (Bhava Madhya) - For T-N column like Mo-01H, Ju-07H
+              for(var tEntry in tPos.values){
+                String tpAb=_planetToAbbr(tEntry.planet);
+                int tHouse=tHouseMap[tpAb]??1;
+                double tLon=tLonMap[tpAb]??0;
+                for(int h=1;h<=12;h++){
+                  if(_asp(tHouse,tpAb,h)){
+                    String dayKey="${curDay.day}-${curDay.month}-${curDay.year}-${tpAb}-${h}H";
+                    if(bestDiffMap.containsKey(dayKey)) continue;
+                    List<String> rashiShort=['','Ar','Ta','Ge','Cn','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'];
+                    int tSign=(tLon~/30)+1;
+                    int houseSign=((asc-1+h-1)%12)+1;
+                    String tsnsVal="${rashiShort[tSign]}-${rashiShort[houseSign]}";
+                    String dateStr="${curDay.day.toString().padLeft(2,'0')}-${curDay.month.toString().padLeft(2,'0')}-${curDay.year} ${cur.hour.toString().padLeft(2,'0')}:${cur.minute.toString().padLeft(2,'0')}";
+                    String tnVal="$tpAb-${_hh(h)}H";
+                    Map<int,List<String>> houseTags={};
+                    houseTags[h]=["${_hh(h)}H"];
+                    bestDiffMap[dayKey]=0;
+                    rows.add({'key':dayKey,'date':dateStr,'tn':tnVal,'tsns':tsnsVal,'tags':houseTags,'diff':0.0});
+                  }
+                }
+              }
+              
             }catch(e){}
           }
         }catch(e){}
@@ -168,7 +244,7 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
         return Card(child:Padding(padding:const EdgeInsets.all(6), child:Column(crossAxisAlignment:CrossAxisAlignment.start, children:[
           const GlobalDateRangeWidgetT1(),
           const SizedBox(height:6),
-          Text('${rows.length} Events - T-N Exact Full Year',style:const TextStyle(fontWeight:FontWeight.bold,fontSize:11,color:Colors.deepOrange)),
+          Text('${rows.length} Events',style:const TextStyle(fontWeight:FontWeight.bold,fontSize:11,color:Colors.deepOrange)),
           const SizedBox(height:6),
           SizedBox(height:600, child: PinchZoom(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: SingleChildScrollView(scrollDirection: Axis.vertical, child: DataTable(
             columnSpacing:12,
