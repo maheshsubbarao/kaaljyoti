@@ -12,7 +12,6 @@ import '../widgetsystem/astro_module.dart';
 String _hh(int n) => n.toString().padLeft(2,'0');
 List<int> _off(String p){ switch(p){ case 'Ma': return [3,6,7]; case 'Ju': return [4,6,8]; case 'Sa': return [2,6,9]; case 'Ra': case 'Ke': return [4,6,8]; default: return [6]; } }
 bool _asp(int f,String p,int t){ for(var o in _off(p)){ int h=f+o; while(h>12)h-=12; if(h==t)return true; } return false; }
-bool _aspD9(double natalD9Deg,double transitDeg){ double diff=(natalD9Deg-transitDeg)%360; if(diff<0)diff+=360; int house=(diff~/30); return house==0||house==4||house==8; }
 Map<int,String> getLordsForAsc(int asc){ const lm=['','Ma','Ve','Me','Mo','Su','Me','Ve','Ma','Ju','Sa','Sa','Ju']; Map<int,String> l={}; for(int h=1;h<=12;h++){ int s=((asc-1+h-1)%12)+1; l[h]=lm[s]; } return l; }
 Map<String,List<int>> getOwn(Map<int,String> lords){ Map<String,List<int>> o={}; lords.forEach((h,lord){ o.putIfAbsent(lord,()=>[]); o[lord]!.add(h); }); return o; }
 String _planetToAbbr(Planet p){ switch(p){ case Planet.sun: return 'Su'; case Planet.moon: return 'Mo'; case Planet.mars: return 'Ma'; case Planet.mercury: return 'Me'; case Planet.jupiter: return 'Ju'; case Planet.venus: return 'Ve'; case Planet.saturn: return 'Sa'; case Planet.rahu: return 'Ra'; case Planet.ketu: return 'Ke'; default: return 'Me'; } }
@@ -34,8 +33,8 @@ double _d9Lon(double lon){
 }
 
 class GlobalRange {
-  static ValueNotifier<DateTime> from = ValueNotifier(DateTime(DateTime.now().year,1,1));
-  static ValueNotifier<DateTime> to = ValueNotifier(DateTime(DateTime.now().year,12,31));
+  static ValueNotifier<DateTime> from = ValueNotifier(DateTime(DateTime.now().year,DateTime.now().month,1));
+  static ValueNotifier<DateTime> to = ValueNotifier(DateTime(DateTime.now().year,DateTime.now().month+1,0));
 }
 
 class GlobalDateRangeWidgetT1 extends StatelessWidget {
@@ -71,6 +70,9 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
   int _houseFromLong(double lon, ChalitData d){
     for(int h=0;h<12;h++){ double s1=d.sandhi[h]; double s2=d.sandhi[(h+1)%12]; if(s1<s2){ if(lon>=s1&&lon<s2)return h+1; } else { if(lon>=s1||lon<s2)return h+1; } }
     return 12;
+  }
+  bool _isTri(double natalD9, double transitLon){
+    double diff=(natalD9-transitLon)%360; if(diff<0)diff+=360; int h=(diff/30).floor(); return h==0||h==4||h==8;
   }
 
   @override Widget build(BuildContext context){
@@ -117,7 +119,6 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
                 tHouseMap[ab]=_houseFromLong(e.longitude, chalitData);
               }
               
-              // 1. T-N Planet to Planet
               for(var tEntry in tPos.values){
                 String tpAb=_planetToAbbr(tEntry.planet);
                 double tLon=tEntry.longitude; 
@@ -164,34 +165,25 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
                         if(_asp(tHouse,tpAb,hfmSignHouse))tags.add("${_hh(req)}HFM");
                         if(_asp(tHouse,tpAb,lfmLordH))tags.add("${_hh(req)}LFM");
                         
-                        // D9 TOE
-                        double d9LordDeg=natalLordD9[req]??0;
+                        double d9Deg=natalLordD9[req]??0;
                         double tVe=tLonMap['Ve']??0; double tMa=tLonMap['Ma']??0; double tJu=tLonMap['Ju']??0; double tSa=tLonMap['Sa']??0; double tRa=tLonMap['Ra']??0; double tKe=tLonMap['Ke']??0;
-                        if(req==1 && _aspD9(d9LordDeg,tJu)) tags.add("D901");
-                        if(req==2 && _aspD9(d9LordDeg,tJu)) tags.add("D902");
-                        if(req==3 && _aspD9(d9LordDeg,tJu)) tags.add("D903");
+                        if(req==1 && _isTri(d9Deg,tJu)) tags.add("D901");
+                        if(req==2 && _isTri(d9Deg,tJu)) tags.add("D902");
+                        if(req==3 && _isTri(d9Deg,tJu)) tags.add("D903");
                         if(req==4){
-                          if(_aspD9(d9LordDeg,tSa)) tags.add("D904FB");
-                          if(_aspD9(d9LordDeg,tVe)||_aspD9(d9LordDeg,tMa)||_aspD9(d9LordDeg,tJu)) tags.add("D904VPM");
+                          if(_isTri(d9Deg,tSa)) tags.add("D904FB");
+                          if(_isTri(d9Deg,tVe)||_isTri(d9Deg,tMa)||_isTri(d9Deg,tJu)) tags.add("D904VPM");
                         }
-                        if(req==5 && _aspD9(d9LordDeg,tJu)) tags.add("D905");
-                        if(req==6){
-                          if(_aspD9(d9LordDeg,tMa)||_aspD9(d9LordDeg,tSa)||_aspD9(d9LordDeg,tRa)||_aspD9(d9LordDeg,tKe)) tags.add("D906");
-                        }
-                        if(req==7 && _aspD9(d9LordDeg,tJu)) tags.add("D907");
-                        if(req==8 && _aspD9(d9LordDeg,tSa)) tags.add("D908");
-                        if(req==9 && _aspD9(d9LordDeg,tJu)) tags.add("D909");
-                        if(req==10 && _aspD9(d9LordDeg,tJu)) tags.add("D910");
-                        if(req==11){
-                          if(_aspD9(d9LordDeg,tJu)) tags.add("D911");
-                          if(_aspD9(d9LordDeg,tSa)) tags.add("D911MB");
-                        }
-                        if(req==12){
-                          if(_aspD9(d9LordDeg,tRa)) tags.add("D912GB");
-                          if(_aspD9(d9LordDeg,tJu)) tags.add("D912FT");
-                        }
+                        if(req==5 && _isTri(d9Deg,tJu)) tags.add("D905");
+                        if(req==6){ if(_isTri(d9Deg,tMa)||_isTri(d9Deg,tSa)||_isTri(d9Deg,tRa)||_isTri(d9Deg,tKe)) tags.add("D906"); }
+                        if(req==7 && _isTri(d9Deg,tJu)) tags.add("D907");
+                        if(req==8 && _isTri(d9Deg,tSa)) tags.add("D908");
+                        if(req==9 && _isTri(d9Deg,tJu)) tags.add("D909");
+                        if(req==10 && _isTri(d9Deg,tJu)) tags.add("D910");
+                        if(req==11){ if(_isTri(d9Deg,tJu)) tags.add("D911"); if(_isTri(d9Deg,tSa)) tags.add("D911MB"); }
+                        if(req==12){ if(_isTri(d9Deg,tRa)) tags.add("D912GB"); if(_isTri(d9Deg,tJu)) tags.add("D912FT"); }
                         
-                        if(tags.isNotEmpty)houseTags[req]=tags.toSet().take(5).toList();
+                        if(tags.isNotEmpty)houseTags[req]=tags.toSet().take(15).toList();
                       }
                       int existingIdx = rows.indexWhere((r)=> r['key']==dayKey);
                       if(existingIdx>=0){
@@ -204,7 +196,6 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
                 }
               }
               
-              // 2. T-N Planet to House (Bhava Madhya) - For T-N column like Mo-01H, Ju-07H
               for(var tEntry in tPos.values){
                 String tpAb=_planetToAbbr(tEntry.planet);
                 int tHouse=tHouseMap[tpAb]??1;
@@ -220,7 +211,25 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
                     String dateStr="${curDay.day.toString().padLeft(2,'0')}-${curDay.month.toString().padLeft(2,'0')}-${curDay.year} ${cur.hour.toString().padLeft(2,'0')}:${cur.minute.toString().padLeft(2,'0')}";
                     String tnVal="$tpAb-${_hh(h)}H";
                     Map<int,List<String>> houseTags={};
-                    houseTags[h]=["${_hh(h)}H"];
+                    List<String> d9tags=[];
+                    double d9Deg=natalLordD9[h]??0;
+                    double tVe=tLonMap['Ve']??0; double tMa=tLonMap['Ma']??0; double tJu=tLonMap['Ju']??0; double tSa=tLonMap['Sa']??0; double tRa=tLonMap['Ra']??0; double tKe=tLonMap['Ke']??0;
+                    if(h==1 && _isTri(d9Deg,tJu)) d9tags.add("D901");
+                    if(h==2 && _isTri(d9Deg,tJu)) d9tags.add("D902");
+                    if(h==3 && _isTri(d9Deg,tJu)) d9tags.add("D903");
+                    if(h==4){
+                      if(_isTri(d9Deg,tSa)) d9tags.add("D904FB");
+                      if(_isTri(d9Deg,tVe)||_isTri(d9Deg,tMa)||_isTri(d9Deg,tJu)) d9tags.add("D904VPM");
+                    }
+                    if(h==5 && _isTri(d9Deg,tJu)) d9tags.add("D905");
+                    if(h==6){ if(_isTri(d9Deg,tMa)||_isTri(d9Deg,tSa)||_isTri(d9Deg,tRa)||_isTri(d9Deg,tKe)) d9tags.add("D906"); }
+                    if(h==7 && _isTri(d9Deg,tJu)) d9tags.add("D907");
+                    if(h==8 && _isTri(d9Deg,tSa)) d9tags.add("D908");
+                    if(h==9 && _isTri(d9Deg,tJu)) d9tags.add("D909");
+                    if(h==10 && _isTri(d9Deg,tJu)) d9tags.add("D910");
+                    if(h==11){ if(_isTri(d9Deg,tJu)) d9tags.add("D911"); if(_isTri(d9Deg,tSa)) d9tags.add("D911MB"); }
+                    if(h==12){ if(_isTri(d9Deg,tRa)) d9tags.add("D912GB"); if(_isTri(d9Deg,tJu)) d9tags.add("D912FT"); }
+                    houseTags[h]=["${_hh(h)}H", ...d9tags];
                     bestDiffMap[dayKey]=0;
                     rows.add({'key':dayKey,'date':dateStr,'tn':tnVal,'tsns':tsnsVal,'tags':houseTags,'diff':0.0});
                   }
