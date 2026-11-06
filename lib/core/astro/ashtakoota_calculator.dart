@@ -30,7 +30,7 @@ class AshtakootaBody extends ConsumerWidget {
           try {
             final calc = AshtakootaCalc.compute(bSnap, gSnap, _find(brideId), _find(groomId), hideAyush: hideAyush);
             return Column(children: [
-              Container(decoration: BoxDecoration(color: const Color(0xFF76FF03), borderRadius: BorderRadius.circular(4)), padding: const EdgeInsets.all(10), child: Center(child: Text('AshtaKoota ${calc.totalDouble == calc.total.toDouble() ? calc.total : calc.totalDouble.toStringAsFixed(1)}/36 = ${calc.percent}% - ${calc.verdict} | All Dynamic', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16), textAlign: TextAlign.center)),),
+              Padding(padding: const EdgeInsets.only(top: 8), child: Container(decoration: BoxDecoration(color: const Color(0xFF76FF03), borderRadius: BorderRadius.circular(4)), padding: const EdgeInsets.all(10), child: Center(child: Text('AshtaKoota ${calc.totalDouble == calc.total.toDouble() ? calc.total : calc.totalDouble.toStringAsFixed(1)}/36 = ${calc.percent}% - ${calc.verdict} | All Dynamic', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16), textAlign: TextAlign.center)))),
               const SizedBox(height: 8),
               Row(children: [
                 Checkbox(value: !hideAyush, onChanged: (v) => onAyushChanged(!(v??false))), const Text('Show Ayush', style: TextStyle(fontSize: 12)),
@@ -40,10 +40,10 @@ class AshtakootaBody extends ConsumerWidget {
                 OutlinedButton.icon(onPressed: () => AshtakootaExport.exportCsv(calc), icon: const Icon(Icons.table_chart, size: 16), label: const Text('CSV')),
               ]),
               const SizedBox(height: 8),
-              ModuleCard(title: 'AshtaKoota ${calc.brideName} x ${calc.groomName}', child: Table(columnWidths: const {0: FlexColumnWidth(0.35), 1: FlexColumnWidth(0.9), 2: FlexColumnWidth(2.8), 3: FlexColumnWidth(2.8), 4: FlexColumnWidth(1.1), 5: FlexColumnWidth(0.9)}, border: TableBorder.all(color: Colors.grey.shade300), children: [
+              ModuleCard(title: 'AshtaKoota ${calc.brideName} x ${calc.groomName}', child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(width: 950, child: Table(columnWidths: const {0: FixedColumnWidth(50), 1: FixedColumnWidth(140), 2: FixedColumnWidth(180), 3: FixedColumnWidth(180), 4: FixedColumnWidth(120), 5: FixedColumnWidth(280)}, border: TableBorder.all(color: Colors.grey.shade300), children: [
                 AshtakootaExport.headerRow(calc.brideName, calc.groomName),
                 for (final r in calc.detailed) AshtakootaExport.dataRow(r[0], r[1], r[2], r[3], r[4], r[5]),
-              ],),),
+              ],),),),),
             ]);
           } catch (e, st) { return Center(child: Text('Error $e\n$st')); }
         },

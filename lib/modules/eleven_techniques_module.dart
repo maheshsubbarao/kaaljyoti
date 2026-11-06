@@ -278,9 +278,9 @@ class GlobalDateRangeWidgetT1 extends StatelessWidget {
                         DateTime? p = await showDatePicker(
                             context: context,
                             initialDate: fromVal,
-                            firstDate: DateTime(1950),
-                            lastDate: DateTime(2100));
-                        if (p != null) GlobalRange.from.value = p;
+                            firstDate: DateTime(1900),
+                            lastDate: DateTime(DateTime.now().year + 50));
+                            if (p != null) { GlobalRange.to.value = p; if (p.isBefore(GlobalRange.from.value)) GlobalRange.from.value = p.subtract(const Duration(days: 30)); }
                       },
                       child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -304,8 +304,8 @@ class GlobalDateRangeWidgetT1 extends StatelessWidget {
                         DateTime? p = await showDatePicker(
                             context: context,
                             initialDate: toVal,
-                            firstDate: DateTime(1950),
-                            lastDate: DateTime(2100));
+                            firstDate: DateTime(1900),
+			    lastDate: DateTime(DateTime.now().year + 50));
                         if (p != null) GlobalRange.to.value = p;
                       },
                       child: Container(
@@ -396,9 +396,12 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
                 DateTime from =
                     DateTime(fromVal.year, fromVal.month, fromVal.day, 0, 0)
                         .toUtc();
-                DateTime to =
+                                DateTime to =
                     DateTime(toVal.year, toVal.month, toVal.day, 23, 59)
                         .toUtc();
+                if (to.difference(from).inDays > 370 || to.isBefore(from)) {
+                  return Card(child: Padding(padding: const EdgeInsets.all(12), child: Text('Select max 1 year range. To is too far from From - pick To within 1 year of From.', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))));
+                }
                 List<Map<String, dynamic>> rows = [];
                 try {
                   Map<String, double> natalPoints = natalPointsFor(snap);
@@ -480,6 +483,7 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
                     }
                   }
                   exactEvents.sort((a, b) => a.time.compareTo(b.time));
+                  if (exactEvents.length > 500) exactEvents = exactEvents.sublist(0, 500);
                   DateTime dob;
                   int utcOffsetMinutes = 0;
                   try {
