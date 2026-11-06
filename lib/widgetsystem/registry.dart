@@ -1,7 +1,6 @@
 /// The module registry — the single list the dashboard, Arrange
 /// customizer, and PDF exporter all loop over (brief §2.8).
 library;
-
 import '../modules/ashtakavarga_module.dart';
 import '../modules/bhava_bala_module.dart';
 import '../modules/birth_chart_module.dart';
@@ -40,9 +39,8 @@ import '../modules/varshphal_module.dart';
 import '../modules/varshphal_saham_module.dart';
 import '../modules/yogas_module.dart';
 import 'astro_module.dart';
-// DELETED: import '../modules/astro_events_module.dart'; - BOSS FIX Astro Events Removed
 
-const List<AstroModule> _allModules = [
+final List<AstroModule> _allModules = [
   BirthChartModule(),
   DashaModule(),
   PanchangModule(),
@@ -82,19 +80,18 @@ const List<AstroModule> _allModules = [
   SadeSatiModule(),
   ShadbalaModule(),
   BhavaBalaModule(),
-  // ResearchLabModule(),
-  MDTechniqueModule(),
-  // ADTechniqueModule(), // DELETED - BOSS FIX
-  TNMasterModule(),
-  D9TechniqueModule(),
-  SJMHModule(),
-  AIOModule(),
-  BNNModule(),
-  SPModule(),
-  SATechniqueModule(),
-  PDTechniqueModule(),
-  APTechniqueModule(),
-  BadTransitsModule(),
+  // === 11 TECHNIQUES - NOW REGISTERED! ===
+  const MDTechniqueModule(),
+  const SJMHModule(),
+  const D9TechniqueModule(),
+  const AIOModule(),
+  const BNNModule(),
+  const SPModule(),
+  const SATechniqueModule(),
+  const PDTechniqueModule(),
+  const APTechniqueModule(),
+  const BadTransitsModule(),
+  // === GRAPH-AIO MASTER - KEEP IT ===
   PowerGraphMasterModule(),
 ];
 

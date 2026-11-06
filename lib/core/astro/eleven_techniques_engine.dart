@@ -22,39 +22,45 @@ class ElevenTechniquesEngine {
     // --- GET DOB ---
     DateTime dob;
     try {
-      dob = natalChart['dob']?? dashaData['dob']?? DateTime(1966,2,22,8,31,16);
-      if (dob is String) dob = DateTime.parse(dob);
+      dynamic rawDob = natalChart['dob'] ?? dashaData['dob'];
+      if (rawDob == null) throw Exception('DOB missing in natalChart');
+      dob = rawDob is String ? DateTime.parse(rawDob) : rawDob as DateTime;
     } catch(e) {
-      dob = DateTime(1966,2,22,8,31,16);
+      rethrow;
     }
 
-    // --- GET NATAL SIGNS 0-11 ---
+        // --- GET NATAL SIGNS 0-11 ---
     Map<String,int> natalSigns = {};
-    // natalChart can be {'JU': 45.0 degree} or {'JU': 1 sign}
+    // Normalize keys: Ju/ju/JU all -> JU
+    Map<String, dynamic> chart = {};
+    natalChart.forEach((k, v) {
+      chart[k.toString().toUpperCase()] = v;
+    });
     for (var p in ['SU','MO','MA','ME','JU','VE','SA','RA','KE']) {
-      if (natalChart.containsKey(p)) {
-        var val = natalChart[p];
+      if (chart.containsKey(p)) {
+        var val = chart[p];
         int sign;
-        if (val is double) {
-          sign = (val / 30).floor() % 12;
-        } else if (val is int) {
-          sign = val % 12;
-          if (sign <0) sign+=12;
-          // If val is 1-12 convert to 0-11
-          if (sign > 11) sign = (sign-1) %12;
-          // If your chart sends 1-12 as sign number, handle
-          if (natalChart['isOneToTwelve'] == true) sign = (val-1) %12;
+        if (val is num) {
+          double d = val.toDouble();
+          if (chart['isOneToTwelve'] == true && d >= 1 && d <= 12) {
+            sign = (d.toInt() - 1) % 12;
+          } else if (d > 12) {
+            // Longitude in degrees like 45.0, 340.0
+            sign = (d / 30).floor() % 12;
+          } else {
+            // Sign 0-11
+            sign = d.toInt() % 12;
+          }
+          if (sign < 0) sign += 12;
         } else {
           continue;
         }
         natalSigns[p] = sign;
       }
     }
-    // Fallback example for testing - Remove after real chart connected
     if (natalSigns.isEmpty) {
-      natalSigns = {'SU':10,'MO':6,'MA':11,'ME':11,'JU':1,'VE':9,'SA':1,'RA':1,'KE':7};
+      return [];
     }
-
     // --- BNN SPIRAL PROGRESSION ---
     for (var ppEntry in bnnConfig.entries) {
       String pp = ppEntry.key;
@@ -67,7 +73,7 @@ class ElevenTechniquesEngine {
 
       // Max generate till 'to' range + 1 year buffer
       double maxYears = to.difference(dob).inDays / 365.25 + 2;
-      if (maxYears < 0) maxYears = 80;
+      if (maxYears < 0) maxYears = 0;
 
       while (cumulative <= maxYears) {
         for (int j=0; j<12; j++) {
@@ -147,7 +153,7 @@ class AstroEvent {
     DateTime? toDate,
     String? psNs,
     double? y,
-  }) : toDate = toDate?? date.add(Duration(days: 365)),
+  }) : toDate = toDate ?? date,
        psNs = psNs?? "",
        y = y?? 0;
 

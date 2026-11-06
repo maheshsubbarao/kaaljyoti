@@ -12,6 +12,7 @@ import 'app.dart';
 import 'charts/chart_tuning.dart';
 import 'core/astro/ephemeris_service.dart';
 import 'core/constants.dart';
+import 'data/db.dart'; // ADD THIS LINE - FIX FOR AppDb!
 import 'data/settings_repository.dart';
 
 Future<void> main() async {
@@ -39,11 +40,20 @@ Future<void> main() async {
 Future<void> _run() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // FIX FOR WEB + APK DATABASE - ADD THIS BLOCK
+  // FIX FOR WEB + APK DATABASE - EXACT FIX FOR BLANK
   if (kIsWeb) {
     databaseFactory = databaseFactoryFfiWeb;
   }
-  // END FIX - For APK it will use native factory automatically
+  // For APK - Do nothing, keep native factory
+  // Also ensure DB is created before runApp
+  try {
+    final db = AppDb.instance;
+    await db.database;
+    debugPrint('DB Ready');
+  } catch (e) {
+    debugPrint('DB init in main failed: $e');
+  }
+  // END FIX
 
   GoogleFonts.config.allowRuntimeFetching = true; // FIXED FROM false
 

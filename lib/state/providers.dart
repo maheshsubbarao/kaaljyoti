@@ -266,6 +266,10 @@ final kundlisProvider = FutureProvider<List<Kundli>>(
   (ref) => ref.watch(kundliRepoProvider).saved(),
 );
 
+final allKundlisForMatchingProvider = FutureProvider<List<Kundli>>(
+  (ref) => ref.watch(kundliRepoProvider).all(),
+);
+
 /// The kundli whose dashboard is active.
 final activeKundliIdProvider = StateProvider<String?>((ref) => null);
 

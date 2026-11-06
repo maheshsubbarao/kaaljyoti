@@ -59,14 +59,13 @@ Future<void> importJyotishCharts(BuildContext context, WidgetRef ref) async {
       return;
     }
 
-    // Confirm dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Import ${charts.length} Charts?'),
         content: Text(
           'First: ${charts.first.name} - ${charts.first.day}/${charts.first.month}/${charts.first.year}\n'
-          'Month fixed: Jan=0 -> 1 (your note)\n'
+          'Month fixed: Jan=0 -> 1\n'
           'This will add all charts to your list.',
         ),
         actions: [
@@ -75,13 +74,11 @@ Future<void> importJyotishCharts(BuildContext context, WidgetRef ref) async {
         ],
       ),
     );
-    if (confirmed!= true) return;
+    if (confirmed != true) return;
 
     final repo = ref.read(kundliRepoProvider);
     int count = 0;
     for (final c in charts) {
-      // Avoid duplicates by name + birth date
-      // Create kundli using your repo
       await repo.create(
         name: c.name,
         birthUtc: c.birthUtc,
@@ -91,16 +88,16 @@ Future<void> importJyotishCharts(BuildContext context, WidgetRef ref) async {
         utcOffsetMinutes: c.tzOffsetMinutes,
         placeName: c.place,
         relationTag: 'Imported',
+        isEphemeral: false,
       );
       count++;
     }
     ref.invalidate(kundlisProvider);
-    messenger.showSnackBar(SnackBar(content: Text('$count charts imported! Jan=0 fixed.')));
+    messenger.showSnackBar(SnackBar(content: Text('$count charts imported! Fixed!')));
   } catch (e) {
     messenger.showSnackBar(SnackBar(content: Text('Import failed: $e')));
   }
 }
-
 class KundliListScreen extends ConsumerWidget {
   const KundliListScreen({super.key});
 

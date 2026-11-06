@@ -27,16 +27,19 @@ import 'common.dart';
 String _upcomingEventsTitle(AppLocalizations l10n) =>
     l10n.moduleUpcomingEventsTitle;
 
-/// The 5 planets worth a dedicated filter chip — the same "watch"
-/// list the old Gochar module used (Rahu/Ketu/Saturn/Jupiter/Mars are
-/// the slow movers whose ingresses and natal hits matter most for
-/// consultation prep).
+/// ALL 9 planets for filter — Now includes Su, Mo, Me, Ve!
+/// User suggested: Mo gives many hits, so give separate button to untick Mo!
+/// Order: Fast to slow -> Su, Mo, Me, Ve, Ma, Ju, Sa, Ra, Ke
 const _kFilterPlanets = [
-  Planet.saturn,
+  Planet.sun,
+  Planet.moon,
+  Planet.mercury,
+  Planet.venus,
+  Planet.mars,
   Planet.jupiter,
+  Planet.saturn,
   Planet.rahu,
   Planet.ketu,
-  Planet.mars,
 ];
 
 // Full-date formatters follow the user's app-wide date-format choice; the
@@ -245,10 +248,6 @@ class _FeedBodyState extends ConsumerState<_FeedBody> {
           .toList();
     }
 
-    // Group by calendar month (local time), with a "Today" divider
-    // inserted at the top of whichever month group contains `now` —
-    // every event in this feed is >= now (the window starts there),
-    // so this marks how far into that first month the feed begins.
     final byMonth = <String, List<FeedEvent>>{};
     for (final e in all) {
       final key = _monthFmt.format(e.time.toLocal());
@@ -335,13 +334,6 @@ class _FeedBodyState extends ConsumerState<_FeedBody> {
     );
   }
 
-  /// Colours the leading graha name when the label starts with it —
-  /// compared against the LOCALIZED name (feed and transit lines are
-  /// both localized now).
-  ///
-  /// Date and time stack on two lines: a single-line "date, h:mm AM"
-  /// either wrapped the meridiem onto its own orphan line or crowded
-  /// the event text, depending on the date-format preference's width.
   Widget _eventRow(FeedEvent e, {required bool dateOnly}) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 5),
         child: Row(

@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:path/path.dart' as p;
 import 'package:sqflite_sqlcipher/sqflite.dart' as sqlcipher_sqflite;
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
-import 'package:sqflite_common/sqflite.dart' show inMemoryDatabasePath, OpenDatabaseOptions, Database;
+import 'package:sqflite_common/sqflite.dart' show OpenDatabaseOptions, Database;
 
 import '../services/key_backup_service.dart';
 
@@ -24,7 +24,6 @@ class AppDb {
       return _db!;
     }
     _db = await _openMobile();
-    // After DB open success, try import from Download
     await _tryImportFromDownload();
     return _db!;
   }
@@ -37,7 +36,7 @@ class AppDb {
   Future<Database> _openWeb() async {
     var factory = databaseFactoryFfiWeb;
     final db = await factory.openDatabase(
-      inMemoryDatabasePath,
+      _dbName, // FIX: Persistent! Not inMemoryDatabasePath!
       options: OpenDatabaseOptions(
         version: 11,
         onConfigure: (db) async {
@@ -48,6 +47,7 @@ class AppDb {
           try { await db.insert('dashboard_views', {'id':'default_view','name':'Default','position':0}); } catch(_){}
         },
         onOpen: (db) async {
+          // Only delete ephemeral prashna, not saved charts!
           try { await db.delete('kundlis', where: 'is_ephemeral = 1'); } catch(_){}
         }
       ),
@@ -73,17 +73,42 @@ class AppDb {
           await _createAllTables(db); 
           try { await db.insert('dashboard_views', {'id':'default_view','name':'Default','position':0}); } catch(_){}
         },
+        onOpen: (db) async {
+          // Only delete ephemeral, not all!
+          try { await db.delete('kundlis', where: 'is_ephemeral = 1'); } catch(_){}
+        }
       );
     } catch (e) {
-      print("DB Open Failed first try: $e - Trying to recreate");
-      // Try 2: Delete corrupted DB and recreate with new key
+      debugPrint("DB Open Failed first try: $e - Trying WITHOUT delete");
+      
+      // Try 2: Try open without password (old unencrypted DB)
+      try {
+        return await sqlcipher_sqflite.openDatabase(
+          path,
+          version: 11,
+          onConfigure: (db) async { 
+            try { await db.execute('PRAGMA foreign_keys = ON'); } catch(_){}
+          },
+          onCreate: (db, v) async { 
+            await _createAllTables(db); 
+            try { await db.insert('dashboard_views', {'id':'default_view','name':'Default','position':0}); } catch(_){}
+          },
+          onOpen: (db) async {
+            try { await db.delete('kundlis', where: 'is_ephemeral = 1'); } catch(_){}
+          }
+        );
+      } catch (_) {}
+
+      // Try 3: LAST RESORT ONLY - Delete only if file is truly corrupted
+      // Create backup first!
       try {
         final file = File(path);
         if (await file.exists()) {
+          final backupPath = "$path.bak.${DateTime.now().millisecondsSinceEpoch}";
+          try { await file.copy(backupPath); debugPrint("Backup created: $backupPath"); } catch(_){}
           await file.delete();
-          print("Deleted corrupted DB");
+          debugPrint("Deleted corrupted DB after backup");
         }
-        // Also delete -journal and -wal
         final journal = File("$path-journal");
         if (await journal.exists()) await journal.delete();
         final wal = File("$path-wal");
@@ -91,7 +116,6 @@ class AppDb {
       } catch (_) {}
 
       try {
-        // Generate new key and create fresh DB
         final newKey = _randomKey();
         try { await _keyService.write(newKey); } catch(_){}
         return await sqlcipher_sqflite.openDatabase(
@@ -107,32 +131,15 @@ class AppDb {
           },
         );
       } catch (e2) {
-        print("DB Second try failed: $e2 - Trying without password");
-        // Try 3: Last resort - open without encryption
-        try {
-          return await sqlcipher_sqflite.openDatabase(
-            path,
-            version: 11,
-            onConfigure: (db) async { 
-              try { await db.execute('PRAGMA foreign_keys = ON'); } catch(_){}
-            },
-            onCreate: (db, v) async { 
-              await _createAllTables(db); 
-              try { await db.insert('dashboard_views', {'id':'default_view','name':'Default','position':0}); } catch(_){}
-            },
-          );
-        } catch (e3) {
-          rethrow;
-        }
+        debugPrint("DB Second try failed: $e2");
+        rethrow;
       }
     }
   }
 
-  // NEW: Import from Download/JyotishAppCharts.txt if exists
   Future<void> _tryImportFromDownload() async {
     try {
       if (kIsWeb) return;
-      // Check multiple possible download paths
       List<String> paths = [
         "/storage/emulated/0/Download/JyotishAppCharts.txt",
         "/storage/emulated/0/Download/Download/JyotishAppCharts.txt",
@@ -148,33 +155,24 @@ class AppDb {
         }
       }
       
-      if (foundFile == null) {
-        print("JyotishAppCharts.txt not found in Download");
-        return;
-      }
+      if (foundFile == null) return;
       
-      print("Found ${foundFile.path} - Reading...");
+      debugPrint("Found ${foundFile.path} - Reading...");
       final content = await foundFile.readAsString();
       if (content.trim().isEmpty) return;
       
-      // Check if already imported
       try {
-        final count = await _db?.rawQuery('SELECT COUNT(*) as c FROM kundlis');
+        final count = await _db?.rawQuery('SELECT COUNT(*) as c FROM kundlis WHERE is_ephemeral = 0');
         if (count != null && count.isNotEmpty && (count[0]['c'] as int) > 0) {
-          print("Kundlis already exist: ${count[0]['c']} - Skipping auto import");
+          debugPrint("Kundlis already exist: ${count[0]['c']} - Skipping auto import");
           return;
         }
       } catch (_) {}
       
-      // Parse lines - support multiple formats
-      // Format expected: Each line as JSON or CSV
-      // We will try to import as raw - your existing import logic can handle
-      print("File size: ${content.length} chars - Ready for manual import");
-      // Note: Actual parsing will be done in your import screen
-      // This just ensures DB is created and file is accessible
+      debugPrint("File size: ${content.length} chars - Ready for manual import");
       
     } catch (e) {
-      print("Download import check failed: $e");
+      debugPrint("Download import check failed: $e");
     }
   }
 

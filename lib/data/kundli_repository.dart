@@ -35,7 +35,7 @@ class KundliRepository {
   Future<List<Kundli>> saved() async {
     final db = await _db.database;
     final rows = await db.query('kundlis',
-        where: 'is_ephemeral = 0', orderBy: 'created_at ASC');
+        where: 'is_ephemeral = 0 OR is_ephemeral IS NULL', orderBy: 'created_at ASC');
     return rows.map(Kundli.fromRow).toList();
   }
 
