@@ -47,6 +47,6 @@ class _KundliPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     KJSectionLabel(label), const SizedBox(height: 6),
-    DropdownButton<String?>(isExpanded: true, value: value, hint: const Text('Choose'), items: [for (final k in kundlis) DropdownMenuItem(value: k.id, child: Text(k.name, overflow: TextOverflow.ellipsis))], onChanged: onChanged,),
+    DropdownButton<String?>(isExpanded: true, value: value, hint: const Text('Choose'), items: [for (final k in (List.of(kundlis)..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())))) DropdownMenuItem(value: k.id, child: Text(k.name, overflow: TextOverflow.ellipsis))], onChanged: onChanged,),
   ],);
 }

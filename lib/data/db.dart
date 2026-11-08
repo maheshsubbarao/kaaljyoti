@@ -47,8 +47,7 @@ class AppDb {
           try { await db.insert('dashboard_views', {'id':'default_view','name':'Default','position':0}); } catch(_){}
         },
         onOpen: (db) async {
-          // Only delete ephemeral prashna, not saved charts!
-          try { await db.delete('kundlis', where: 'is_ephemeral = 1'); } catch(_){}
+          // Boss Fix: Do NOT delete any chart on open
         }
       ),
     );
@@ -74,8 +73,7 @@ class AppDb {
           try { await db.insert('dashboard_views', {'id':'default_view','name':'Default','position':0}); } catch(_){}
         },
         onOpen: (db) async {
-          // Only delete ephemeral, not all!
-          try { await db.delete('kundlis', where: 'is_ephemeral = 1'); } catch(_){}
+          // Boss Fix: Do NOT delete any chart on open
         }
       );
     } catch (e) {
@@ -94,47 +92,21 @@ class AppDb {
             try { await db.insert('dashboard_views', {'id':'default_view','name':'Default','position':0}); } catch(_){}
           },
           onOpen: (db) async {
-            try { await db.delete('kundlis', where: 'is_ephemeral = 1'); } catch(_){}
+            // Boss Fix: Do NOT delete any chart on open
           }
         );
       } catch (_) {}
 
-      // Try 3: LAST RESORT ONLY - Delete only if file is truly corrupted
-      // Create backup first!
+      // Try 3: NEVER DELETE. Quarantine and rethrow - user data > clean start.
       try {
         final file = File(path);
         if (await file.exists()) {
-          final backupPath = "$path.bak.${DateTime.now().millisecondsSinceEpoch}";
-          try { await file.copy(backupPath); debugPrint("Backup created: $backupPath"); } catch(_){}
-          await file.delete();
-          debugPrint("Deleted corrupted DB after backup");
+          final q = "$path.quarantine.${DateTime.now().millisecondsSinceEpoch}";
+          try { await file.copy(q); } catch(_){}
         }
-        final journal = File("$path-journal");
-        if (await journal.exists()) await journal.delete();
-        final wal = File("$path-wal");
-        if (await wal.exists()) await wal.delete();
       } catch (_) {}
-
-      try {
-        final newKey = _randomKey();
-        try { await _keyService.write(newKey); } catch(_){}
-        return await sqlcipher_sqflite.openDatabase(
-          path,
-          password: newKey,
-          version: 11,
-          onConfigure: (db) async { 
-            try { await db.execute('PRAGMA foreign_keys = ON'); } catch(_){}
-          },
-          onCreate: (db, v) async { 
-            await _createAllTables(db); 
-            try { await db.insert('dashboard_views', {'id':'default_view','name':'Default','position':0}); } catch(_){}
-          },
-        );
-      } catch (e2) {
-        debugPrint("DB Second try failed: $e2");
-        rethrow;
+      rethrow;
       }
-    }
   }
 
   Future<void> _tryImportFromDownload() async {
@@ -187,15 +159,20 @@ class AppDb {
   }
 
   Future<String> _getOrCreatePassphrase() async {
-    try {
-      var existing = await _keyService.read();
-      if (existing != null && existing.isNotEmpty) return existing;
-      final newKey = _randomKey();
-      try { await _keyService.write(newKey); } catch(_){}
-      return newKey;
-    } catch (_) { 
-      return _randomKey();
+    final existing = await _keyService.read();
+    if (existing != null && existing.isNotEmpty) return existing;
+
+    // CRITICAL: If DB file already exists, DO NOT invent a new key.
+    // A new key can never decrypt the old DB and Try-3 will delete it.
+    // Throw so caller quarantines instead of deleting.
+    final dbPath = await sqlcipher_sqflite.getDatabasesPath();
+    final path = p.join(dbPath, _dbName);
+    if (await File(path).exists()) {
+      throw StateError('DB exists but no passphrase found - refusing to recreate key');
     }
+    final newKey = _randomKey();
+    try { await _keyService.write(newKey); } catch(_){}
+    return newKey;
   }
 
   String _randomKey() {

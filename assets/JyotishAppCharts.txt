@@ -832,3 +832,4 @@ Yug Devgn:::13#8#2010#9#20#0#5#30#1#Mumbai, India#72#50#0#18#58#0#0#0
 Yunus Mohammad:::28#5#1940#0#0#0#6#0#1#Chittagong, Bangladesh#91#50#0#22#20#0#0#0
 Yuvraj Singh:::12#11#1981#12#0#1#5#30#1#Chandigarh, India#76#47#0#30#44#0#0#0
 Zohran Mamdani:::18#9#1991#1#15#0#3#0#1#Kampala, Uganda#32#35#0#0#19#0#0#0
+Zohran Mamdani:::18#9#2026#1#15#0#3#0#1#Kampala, Uganda#32#35#0#0#19#0#0#0

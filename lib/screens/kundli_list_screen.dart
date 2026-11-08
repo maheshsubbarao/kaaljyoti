@@ -76,8 +76,9 @@ Future<void> importJyotishCharts(BuildContext context, WidgetRef ref) async {
     );
     if (confirmed != true) return;
 
-    final repo = ref.read(kundliRepoProvider);
+        final repo = ref.read(kundliRepoProvider);
     int count = 0;
+    // Boss Fix: deleteByTag does not exist in repo - skipped for now
     for (final c in charts) {
       await repo.create(
         name: c.name,
@@ -691,8 +692,13 @@ class _SearchField extends ConsumerStatefulWidget {
 }
 
 class _SearchFieldState extends ConsumerState<_SearchField> {
-  late final TextEditingController _controller =
-      TextEditingController(text: ref.read(kundliSearchProvider));
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: ref.read(kundliSearchProvider));
+  }
 
   @override
   void dispose() {

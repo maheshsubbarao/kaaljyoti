@@ -260,6 +260,40 @@ class GlobalRange {
       ValueNotifier(DateTime(DateTime.now().year, DateTime.now().month + 1, 0));
 }
 
+class GlobalTransitFilter {
+  static ValueNotifier<Set<String>> selected =
+      ValueNotifier({'Su', 'Mo', 'Ma', 'Me', 'Ju', 'Ve', 'Sa', 'Ra', 'Ke'});
+}
+
+class _TransitPlanetChips extends StatelessWidget {
+  const _TransitPlanetChips();
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<Set<String>>(
+        valueListenable: GlobalTransitFilter.selected,
+        builder: (context, sel, _) {
+          const all = ['Su', 'Mo', 'Ma', 'Me', 'Ju', 'Ve', 'Sa', 'Ra', 'Ke'];
+          return Wrap(spacing: 6, children: [
+            for (final p in all)
+              FilterChip(
+                  label: Text(p, style: TextStyle(fontSize: 11, color: sel.contains(p) ? Colors.black : Colors.black54, fontWeight: sel.contains(p) ? FontWeight.bold : FontWeight.normal)),
+                  selected: sel.contains(p),
+                  selectedColor: Colors.amber.shade200,
+                  backgroundColor: Colors.white,
+                  checkmarkColor: Colors.black,
+                  side: BorderSide(color: sel.contains(p) ? Colors.orange.shade700 : Colors.grey.shade400),
+                  onSelected: (v) {
+                    final n = Set<String>.from(sel);
+                    if (v) { n.add(p); } else { n.remove(p); }
+                    if (n.isEmpty) return;
+                    GlobalTransitFilter.selected.value = n;
+                    if (n.contains('Mo')) { final DateTime f = GlobalRange.from.value; final DateTime maxTo = DateTime(f.year + 1, f.month, f.day).subtract(const Duration(days: 1)); if (GlobalRange.to.value.isAfter(maxTo)) GlobalRange.to.value = maxTo; }
+                  }),
+          ]);
+        });
+  }
+}
+
 class GlobalDateRangeWidgetT1 extends StatelessWidget {
   const GlobalDateRangeWidgetT1({super.key});
   String _fmt(DateTime d) =>
@@ -280,7 +314,7 @@ class GlobalDateRangeWidgetT1 extends StatelessWidget {
                             initialDate: fromVal,
                             firstDate: DateTime(1900),
                             lastDate: DateTime(DateTime.now().year + 50));
-                            if (p != null) { GlobalRange.to.value = p; if (p.isBefore(GlobalRange.from.value)) GlobalRange.from.value = p.subtract(const Duration(days: 30)); }
+                            if (p != null) { GlobalRange.from.value = p; final bool moOn = GlobalTransitFilter.selected.value.contains('Mo'); final int yrs = moOn ? 1 : 3; GlobalRange.to.value = DateTime(p.year + yrs, p.month, p.day).subtract(const Duration(days: 1)); }
                       },
                       child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -387,7 +421,10 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
   @override
   Widget build(BuildContext context) {
     final snap = widget.ctx.snapshot;
-    return ValueListenableBuilder<DateTime>(
+    return ValueListenableBuilder<Set<String>>(
+        valueListenable: GlobalTransitFilter.selected,
+        builder: (context, selVal, ___) {
+          return ValueListenableBuilder<DateTime>(
         valueListenable: GlobalRange.from,
         builder: (context, fromVal, _) {
           return ValueListenableBuilder<DateTime>(
@@ -399,8 +436,11 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
                                 DateTime to =
                     DateTime(toVal.year, toVal.month, toVal.day, 23, 59)
                         .toUtc();
-                if (to.difference(from).inDays > 370 || to.isBefore(from)) {
-                  return Card(child: Padding(padding: const EdgeInsets.all(12), child: Text('Select max 1 year range. To is too far from From - pick To within 1 year of From.', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))));
+                final selPlanets = GlobalTransitFilter.selected.value;
+                final maxDays = selPlanets.contains('Mo') ? 370 : 1095;
+                final maxYears = selPlanets.contains('Mo') ? 1 : 3;
+                if (to.difference(from).inDays > maxDays || to.isBefore(from)) {
+                  return Card(child: Padding(padding: const EdgeInsets.all(12), child: Text('Select max $maxYears year range. To is too far from From - pick To within $maxYears year of From.', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))));
                 }
                 List<Map<String, dynamic>> rows = [];
                 try {
@@ -449,6 +489,7 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
                       List.generate(12, (i) => (ascLon + i * 30) % 360);
                   List<TransitEvent> exactEvents = [];
                   for (final p in Planet.values) {
+                    if (!GlobalTransitFilter.selected.value.contains(_planetToAbbr(p))) continue;
                     final f = ephemerisLongitude(p, snap.ayanamsaId);
                     for (final d in drishtisOf(p)) {
                       final angle = drishtiAngle[d]!;
@@ -868,6 +909,8 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
                             children: [
                               const GlobalDateRangeWidgetT1(),
                               const SizedBox(height: 6),
+                              const _TransitPlanetChips(),
+                              const SizedBox(height: 6),
                               Row(children: [
                                 Text('${rows.length} Events',
                                     style: const TextStyle(
@@ -1035,7 +1078,8 @@ class _DashaFullCardState extends ConsumerState<_DashaFullCard> {
                                             }).toList(),
                                           ))))
                             ])));
-              });
+                            });
+        });
         });
   }
 }
