@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../pdf/pw.dart' as pw;
-
 import '../charts/pinch_zoom.dart';
 import '../charts/sbc_painter.dart';
 import '../core/astro/kota_chakra.dart' show isChakraMalefic;
@@ -87,6 +86,13 @@ class _SbcVedhas {
     final janmaCell = nakCell(s.positions[Planet.moon]!.longitude);
     final rashiCell = sbcRashiCell[s.moonSign]!;
     final lagnaCell = sbcRashiCell[s.lagnaSign]!;
+    final tlAsc = transit.transitAscendant(
+        at: fixed ?? DateTime.now(),
+        latitude: s.birth.latitude,
+        longitude: s.birth.longitude,
+        ayanamsaId: s.ayanamsaId);
+    transitLagnaCell =
+        tlAsc == null ? null : nakCell(tlAsc);
     final tithiCell = sbcTithiCell(s.panchang.tithiIndex);
     final varaCell = sbcVaraCell(s.panchang.vara);
     anchors = {
@@ -136,6 +142,7 @@ class _SbcVedhas {
 
   late final Map<(int, int), List<Planet>> natalByCell;
   late final Map<(int, int), List<Planet>> transitByCell;
+  late final (int, int)? transitLagnaCell;
   late final Set<(int, int)> anchors;
   late final Set<(int, int)> maleficVedha;
   late final Set<(int, int)> beneficVedha;
@@ -154,6 +161,8 @@ class _SbcBody extends ConsumerWidget {
     final s = ctx.snapshot;
     final fixed = ref.watch(transitFixedTimeProvider(ctx.kundli.id));
     final v = _SbcVedhas(s, fixed, l10n);
+    final totalB = v.anchorReport.values.expand((e) => e).where((h) => !h.malefic).length;
+    final totalM = v.anchorReport.values.expand((e) => e).where((h) => h.malefic).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,6 +190,7 @@ class _SbcBody extends ConsumerWidget {
                 beneficVedha: v.beneficVedha,
                 natalByCell: v.natalByCell,
                 transitByCell: v.transitByCell,
+                transitLagnaCell: v.transitLagnaCell,
               ),
             ),
           ),
@@ -200,6 +210,13 @@ class _SbcBody extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            'Total: B=$totalB, M=$totalM',
+            style: KJTheme.mono(size: 12, color: KJColors.forest, weight: FontWeight.w700),
+          ),
+        ),
         for (final e in v.anchorReport.entries)
           Padding(
             padding: const EdgeInsets.only(top: 2),

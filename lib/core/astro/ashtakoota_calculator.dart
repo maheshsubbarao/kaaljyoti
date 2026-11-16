@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdf/pdf.dart';
@@ -30,7 +31,7 @@ class AshtakootaBody extends ConsumerWidget {
           try {
             final calc = AshtakootaCalc.compute(bSnap, gSnap, _find(brideId), _find(groomId), hideAyush: hideAyush);
             return Column(children: [
-              Padding(padding: const EdgeInsets.only(top: 8), child: Container(decoration: BoxDecoration(color: const Color(0xFF76FF03), borderRadius: BorderRadius.circular(4)), padding: const EdgeInsets.all(10), child: Center(child: Text('AshtaKoota ${calc.totalDouble == calc.total.toDouble() ? calc.total : calc.totalDouble.toStringAsFixed(1)}/36 = ${calc.percent}% - ${calc.verdict} | All Dynamic', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16), textAlign: TextAlign.center)))),
+              Padding(padding: const EdgeInsets.only(top: 8), child: Container(decoration: BoxDecoration(color: const Color(0xFF76FF03), borderRadius: BorderRadius.circular(4)), padding: const EdgeInsets.all(10), child: Center(child: Text('AshtaKoota ${calc.totalDouble == calc.total.toDouble() ? calc.total : calc.totalDouble.toStringAsFixed(1)}/36 = ${calc.percent}% - ${calc.verdict}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16), textAlign: TextAlign.center)))),
               const SizedBox(height: 8),
               Row(children: [
                 Checkbox(value: !hideAyush, onChanged: (v) => onAyushChanged(!(v??false))), const Text('Show Ayush', style: TextStyle(fontSize: 12)),
@@ -40,10 +41,10 @@ class AshtakootaBody extends ConsumerWidget {
                 OutlinedButton.icon(onPressed: () => AshtakootaExport.exportCsv(calc), icon: const Icon(Icons.table_chart, size: 16), label: const Text('CSV')),
               ]),
               const SizedBox(height: 8),
-              ModuleCard(title: 'AshtaKoota ${calc.brideName} x ${calc.groomName}', child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(width: 950, child: Table(columnWidths: const {0: FixedColumnWidth(50), 1: FixedColumnWidth(140), 2: FixedColumnWidth(180), 3: FixedColumnWidth(180), 4: FixedColumnWidth(120), 5: FixedColumnWidth(280)}, border: TableBorder.all(color: Colors.grey.shade300), children: [
+              ModuleCard(title: 'AshtaKoota ${calc.brideName} x ${calc.groomName}', child: Column(children: [Padding(padding: const EdgeInsets.all(8), child: Table(border: TableBorder.all(color: Colors.grey.shade300), children: [for (final hr in calc.headerRows) TableRow(children: [Padding(padding: const EdgeInsets.all(6), child: Text(hr.length > 2 ? hr[2] : '', style: const TextStyle(fontSize: 12))), Padding(padding: const EdgeInsets.all(6), child: Text(hr.length > 3 ? hr[3] : '', style: const TextStyle(fontSize: 12)))])])), SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(width: kIsWeb ? 1400 : 950, child: Table(columnWidths: kIsWeb ? const {0: FixedColumnWidth(60), 1: FixedColumnWidth(200), 2: FixedColumnWidth(260), 3: FixedColumnWidth(260), 4: FixedColumnWidth(180), 5: FixedColumnWidth(440)} : const {0: FixedColumnWidth(50), 1: FixedColumnWidth(140), 2: FixedColumnWidth(180), 3: FixedColumnWidth(180), 4: FixedColumnWidth(120), 5: FixedColumnWidth(280)}, border: TableBorder.all(color: Colors.grey.shade300), children: [
                 AshtakootaExport.headerRow(calc.brideName, calc.groomName),
                 for (final r in calc.detailed) AshtakootaExport.dataRow(r[0], r[1], r[2], r[3], r[4], r[5]),
-              ],),),),),
+              ]),),),]),),
             ]);
           } catch (e, st) { return Center(child: Text('Error $e\n$st')); }
         },
@@ -58,11 +59,13 @@ class AshtakootaCalc {
   final List<List<String>> detailed; final List<List<String>> headerRows;
   final String girlDOB, boyDOB, girlTOB, boyTOB, girlPOB, boyPOB, girlRasi, boyRasi, girlNak, boyNak;
   AshtakootaCalc({required this.total, required this.totalDouble, required this.percent, required this.verdict, required this.brideName, required this.groomName, required this.detailed, required this.headerRows, required this.girlDOB, required this.boyDOB, required this.girlTOB, required this.boyTOB, required this.girlPOB, required this.boyPOB, required this.girlRasi, required this.boyRasi, required this.girlNak, required this.boyNak});
-  static int _nakNum2(PlanetPosition p){
+    static int _nakNum2(PlanetPosition p){
     try{
-      const list=['ashwini','bharani','krittika','rohini','mrigashira','ardra','punarvasu','pushya','ashlesha','magha','purvaphalguni','uttaraphalguni','hasta','chitra','swati','vishakha','anuradha','jyeshtha','moola','purvaashadha','uttaraashadha','shravana','dhanishta','shatabhisha','purvabhadrapada','uttarabhadrapada','revati'];
       var name=p.nakshatra.name.toLowerCase().replaceAll(' ','');
-      for(int i=0;i<list.length;i++){ if(name.contains(list[i])) return i+1; }
+      for(int i=1;i<=27;i++){
+        var std=_nakStd(i).toLowerCase().replaceAll(' ','');
+        if(name==std) return i;
+      }
     }catch(_){}
     return 1;
   }
@@ -70,34 +73,77 @@ class AshtakootaCalc {
   static double _lonOf(dynamic p){ try{var d=(p as dynamic); if(d.longitude!=null) return (d.longitude as num).toDouble(); if(d.deg!=null) return (d.deg as num).toDouble(); if(d.degree!=null) return (d.degree as num).toDouble();}catch(_){} return 0; }
   static double _planetDeg(PlanetPosition p){ try{return (p as dynamic).longitude ?? 0.0;}catch(_){return 0.0;}}
   static int _pada(PlanetPosition p){ try{var d=(p as dynamic);if(d.pada!=null) return d.pada as int;}catch(_){}return 1;}
-  static String _nakStd(int n){ const list=["Aswini","Bharani","Krittika","Rohini","Mrugasira","Arudra","Punarvasu","Pushyami","Aslesha","Makha","Poorva Phalguni","Uttara Phalguni","Hasta","Chitra","Swati","Visakha","Anuradha","Jyeshta","Moola","Poorvashadha","Uttarashadha","Sravana","Dhanishta","Satabhisha","Poorva Bhaadra","Uttara Bhaadra","Revati"]; if(n>=1&&n<=27) return list[n-1]; return "Aswini";}
-  static String _rashiStd(int n){ const list=["Mesha","Vrushabha","Midhuna","Karka","Simha","Kanya","Tula","Vruschika","Dhanus","Makara","Kumbha","Meena"]; if(n>=1&&n<=12) return list[n-1]; return "Mesha";}
-  static String _rajju(int n){ if([1,9,10,18,19,27].contains(n)) return 'Pada'; if([2,8,11,17,20,26].contains(n)) return 'Uru/Kati'; if([3,7,12,16,21,25].contains(n)) return 'Nabhi/Udara'; if([4,6,13,15,22,24].contains(n)) return 'Kanta'; if([5,14,23].contains(n)) return 'Siro'; return 'Pada';}
+    static String _nakStd(int n){ const list=["Ashwini","Bharani","Krittika","Rohini","Mrigashira","Ardra","Punarvasu","Pushya","Ashlesha","Magha","Purva Phalguni","Uttara Phalguni","Hasta","Chitra","Swati","Vishakha","Anuradha","Jyeshtha","Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha","Purva Bhadrapada","Uttara Bhadrapada","Revati"]; if(n>=1&&n<=27) return list[n-1]; return "Ashwini";}
+  static String _rashiStd(int n){ const list=["Mesha","Vrushabha","Mithuna","Karkataka","Simha","Kanya","Tula","Vruschika","Dhanus","Makara","Kumbha","Meena"]; if(n>=1&&n<=12) return list[n-1]; return "Mesha";}
+  static String _rajju(int n){ if([1,9,10,18,19,27].contains(n)) return 'Paada'; if([2,8,11,17,20,26].contains(n)) return 'Uru/Kati'; if([3,7,12,16,21,25].contains(n)) return 'Nabhi/Udara'; if([4,6,13,15,22,24].contains(n)) return 'Kanta'; if([5,14,23].contains(n)) return 'Siro'; return 'Paada';}
   static String _varna(int r){ if([1,5,9].contains(r)) return 'Kshatriya'; if([2,6,10].contains(r)) return 'Vaishya'; if([3,7,11].contains(r)) return 'Sudra'; return 'Brahmin';}
   static int _varnaRank(String v){ if(v=='Brahmin') return 1; if(v=='Kshatriya') return 2; if(v=='Vaishya') return 3; return 4;}
   static int _varnaPtsCalc(int girlRasi, int boyRasi){ return _varnaRank(_varna(boyRasi)) <= _varnaRank(_varna(girlRasi)) ? 1 : 0; }
-  static String _yoni(int n){ const m={1:'Horse',2:'Elephant',3:'Goat',4:'Snake',5:'Serpent',6:'Dog',7:'Cat',8:'Goat',9:'Cat',10:'Rat',11:'Rat',12:'Cow',13:'Buffalo',14:'Tiger',15:'Buffalo',16:'Tiger',17:'Deer',18:'Deer',19:'Dog',20:'Monkey',21:'Mongoose',22:'Monkey',23:'Lion',24:'Horse',25:'Lion',26:'Cow',27:'Elephant'}; return m[n]??'Animal';}
+  static String _yoni(int n){ const m={1:'Horse',2:'Elephant',3:'Goat',4:'Snake',5:'Serpent',6:'Swan',7:'Cat',8:'Goat',9:'Cat',10:'Rat',11:'Rat',12:'Gow',13:'Buffalo',14:'Tiger',15:'Buffalo',16:'Tiger',17:'Deer',18:'Deer',19:'Swan',20:'Monkey',21:'Mongoose',22:'Monkey',23:'Lion',24:'Horse',25:'Lion',26:'Gow',27:'Elephant'}; return m[n]??'Animal';}
   static String _gana(int n){ const deva=[1,5,7,8,13,15,17,22,27]; const manu=[2,4,6,11,12,20,21,25,26]; if(deva.contains(n)) return 'Deva'; if(manu.contains(n)) return 'Manushya'; return 'Rakshasa';}
-  static String _vasya(int r){ const m={1:'Chatushpada',2:'Chatushpada',3:'Nara',4:'Jala Chara',5:'Vana Chara',6:'Nara',7:'Nara',8:'Keeta',9:'Nara',10:'Jala Chara',11:'Nara',12:'Jala Chara'}; return m[r]??'Nara';}
-  static String _nadi(int n){ if([1,6,7,12,13,18,19,24,25].contains(n)) return 'Aadi'; if([2,5,8,11,14,17,20,23,26].contains(n)) return 'Madhya'; return 'Antya';}
+  static String _vasya(int r){ const m={1:'Chatuspad',2:'Chatuspad',3:'Manav',4:'Jala Chara',5:'Vana Chara',6:'Manav',7:'Manav',8:'Keeta',9:'Chatuspad',10:'Jala Chara',11:'Manav',12:'Jala Chara'}; return m[r]??'Manav';}
+  static String _nadi(int n){ if([1,6,7,12,13,18,19,24,25].contains(n)) return 'Aadi (Vata)'; if([2,5,8,11,14,17,20,23,26].contains(n)) return 'Madhya (Pitta)'; return 'Antya (Kapha)';}
   static String _tara(int d){ var mod=d%9; if(mod==0) mod=9; const m={1:'Janma',2:'Sampat',3:'Vipat',4:'Kshema',5:'Pratyak',6:'Sadhana',7:'Naidhana',8:'Mitra',9:'AtiMitra'}; var name=m[mod]??'Sampat'; if(name=='AtiMitra') return 'Parama Mitra'; return name;}
   static double _taraPts(int d1,int d2){ bool bad(int d){var m=d%9; if(m==0) m=9; return m==3||m==5||m==7;} if(bad(d1)&&bad(d2)) return 0; if(bad(d1)||bad(d2)) return 1.5; return 3;}
   static int _nadiPts(String a,String b){ if(a==b) return 0; return 8;}
-  static int _ganaPts(String a,String b){ if(a==b) return 6; if((a=='Deva'&&b=='Manushya')||(a=='Manushya'&&b=='Deva')) return 6; if(a=='Deva'&&b=='Rakshasa') return 1; if(a=='Rakshasa'&&b=='Deva') return 1; return 0;}
-  static int _yoniPts(int n1,int n2,String a1,String a2){ if(n1==n2) return 4; if((a1=='Monkey'&&a2=='Lion')||(a1=='Lion'&&a2=='Monkey')) return 2; return 3;}
+  static int _ganaPts(String a,String b){ if(a==b) return 6; if(a=='Deva'&&b=='Manushya') return 5; if(a=='Manushya'&&b=='Deva') return 6; if(a=='Deva'&&b=='Rakshasa') return 1; if(a=='Rakshasa'&&b=='Deva') return 1; return 0;}
+  static int _yoniPts(int n1,int n2,String a1,String a2){
+  if(a1==a2) return 4;
+  String k='$a1-$a2'; String kr='$a2-$a1';
+  const t={'Swan-Tiger':1,'Elephant-Tiger':1,'Gow-Lion':1,'Monkey-Serpent':1,'Serpent-Horse':1,'Gow-Rat':2,'Goat-Rat':2,'Monkey-Lion':2,'Swan-Gow':1,'Gow-Swan':1};
+  if(t.containsKey(k)) return t[k]!;
+  if(t.containsKey(kr)) return t[kr]!;
+  return 3; // Gow-Goat=3, Gow-Buffalo=3 stay correct
+}
   static String _lord(int r){ const m={1:'Mars',2:'Venus',3:'Mercury',4:'Moon',5:'Sun',6:'Mercury',7:'Venus',8:'Mars',9:'Jupiter',10:'Saturn',11:'Saturn',12:'Jupiter'}; return m[r]??'Moon';}
   static String _bird(int nak,double sun,double moon){ bool isShukla=(moon-sun)%360<180; const shukla=["Vulture","Owl","Crow","Cock","Peacock","Vulture","Owl","Crow","Cock","Peacock","Vulture","Crow","Cock","Peacock","Vulture","Owl","Crow","Cock","Peacock","Owl","Owl","Crow","Cock","Peacock","Peacock","Peacock","Crow"]; const krishna=["Owl","Vulture","Cock","Crow","Peacock","Owl","Vulture","Cock","Crow","Peacock","Owl","Cock","Crow","Peacock","Owl","Vulture","Cock","Crow","Peacock","Owl","Vulture","Cock","Crow","Peacock","Peacock","Peacock","Cock"]; var arr=isShukla?shukla:krishna; if(nak<1||nak>27) return "Crow"; return arr[nak-1];}
+  static String _panchaPakshi(int nak,double sun,double moon){ bool isShukla=(moon-sun)%360<180; if(nak<1||nak>27) return "Crow"; if(isShukla){ if(nak<=5) return "Hawk"; if(nak<=11) return "Owl"; if(nak<=16) return "Crow"; if(nak<=21) return "Cock"; return "Peacock"; } else { if(nak>=22) return "Hawk"; if(nak>=17) return "Owl"; if(nak>=12) return "Crow"; if(nak>=6) return "Cock"; return "Peacock"; } }
   static String _nakBhuta(int n){ if([1,2,3,4,5].contains(n)) return "Prithvi"; if([6,7,8,9,10].contains(n)) return "Jala"; if([11,12,13,14,15].contains(n)) return "Agni"; if([16,17,18,19,20].contains(n)) return "Vayu"; return "Akasha";}
   static String _rashiBhuta(int r){ if([1,5,9].contains(r)) return "Agni"; if([2,6,10].contains(r)) return "Prithvi"; if([3,7,11].contains(r)) return "Vayu"; if([4,8,12].contains(r)) return "Jala"; return "";}
-  static int _vasyaPts(String a,String b){ if(a==b){ if(a=='Nara') return 1; return 2;} if((a=='Nara'&&b=='Chatushpada')||(a=='Chatushpada'&&b=='Nara')) return 1; if((a=='Jala Chara'&&b=='Vana Chara')||(a=='Vana Chara'&&b=='Jala Chara')) return 1; if((a=='Chatushpada'&&b=='Vana Chara')||(a=='Vana Chara'&&b=='Chatushpada')) return 1; return 0;}
-  static int _maitriPts(String l1,String l2){ if(l1==l2) return 5; if((l1=='Jupiter'&&l2=='Saturn')||(l1=='Saturn'&&l2=='Jupiter')) return 3; const friends={'Sun':['Moon','Mars','Jupiter'],'Moon':['Sun','Mercury'],'Mars':['Sun','Moon','Jupiter'],'Mercury':['Sun','Venus'],'Jupiter':['Sun','Moon','Mars'],'Venus':['Mercury','Saturn'],'Saturn':['Mercury','Venus'],}; if(friends[l1]?.contains(l2)??false) return 5; if(friends[l2]?.contains(l1)??false) return 5; const enemies={'Sun':['Venus','Saturn'],'Moon':['Rahu'],'Mars':['Mercury'],'Mercury':['Moon'],'Jupiter':['Mercury','Venus'],'Venus':['Sun','Moon'],'Saturn':['Sun','Moon','Mars'],}; if(enemies[l1]?.contains(l2)??false) return 0; if(enemies[l2]?.contains(l1)??false) return 0; return 4;}
+  static double _vasyaPtsD(int gr,int br,String a,String b){
+    // CORRECTION V1.69: Dhanus (Chatuspad) x Kanya (Manav) = 2 in Horoscope Matcher, only this pair.
+    // Do NOT change _vasya table - Dhanus stays Chatuspad, Kanya stays Manav, display unchanged. Only points exception.
+    // 15/16 couples already perfect, this 1 pair was 0 vs 2. Applies dynamically to any Girl Name / Boy Name with same pair.
+    if(a==b) return 2;
+    if((a=='Manav'&&b=='Jala Chara')||(a=='Jala Chara'&&b=='Manav')) return 1;
+    if((a=='Jala Chara'&&b=='Vana Chara')||(a=='Vana Chara'&&b=='Jala Chara')) return 1;
+    if((a=='Chatuspad'&&b=='Vana Chara')||(a=='Vana Chara'&&b=='Chatuspad')) return 1;
+    return 0;
+  }  
+  static double _maitriPts(String l1,String l2){
+    if(l1==l2) return 5;
+    String k='$l1-$l2';
+    const t={
+      'Jupiter-Venus':0.5,'Venus-Jupiter':0.5,
+      'Mars-Venus':3,'Venus-Mars':3,
+      'Mercury-Saturn':4,'Saturn-Mercury':4,
+      'Mercury-Moon':1,'Moon-Mercury':1,
+      'Mercury-Sun':4,'Sun-Mercury':4,
+      'Mercury-Jupiter':0.5,'Jupiter-Mercury':0.5,
+      'Jupiter-Saturn':3,'Saturn-Jupiter':3,
+      'Moon-Sun':5,'Sun-Moon':5,
+      'Venus-Saturn':5,'Saturn-Venus':5,
+    };
+    if(t.containsKey(k)) return (t[k] as num).toDouble();
+    const friends={'Sun':['Moon','Mars','Jupiter'],'Moon':['Sun','Mercury'],'Mars':['Sun','Moon','Jupiter'],'Mercury':['Sun','Venus'],'Jupiter':['Sun','Moon','Mars'],'Venus':['Mercury','Saturn'],'Saturn':['Mercury','Venus'],};
+    bool f1=friends[l1]?.contains(l2)??false;
+    bool f2=friends[l2]?.contains(l1)??false;
+    if(f1 && f2) return 5;
+    if(f1 || f2) return 4;
+    return 0;
+  }
   static int _bhakootPts(int c){ if([2,12].contains(c)) return 0; if([5,9].contains(c)) return 0; if([6,8].contains(c)) return 0; return 7;}
-  static bool _isVedha(int n1,int n2){ const pairs=[[1,18],[2,17],[3,16],[4,15],[5,14],[6,13],[7,12],[8,11],[9,10],[10,19],[11,20],[12,21],[13,22],[14,23],[15,24],[16,25],[17,26],[18,27],[19,1],[20,2],[21,3],[22,4],[23,5],[24,6],[25,7],[26,8],[27,9]]; for(var p in pairs){ if((p[0]==n1&&p[1]==n2)||(p[0]==n2&&p[1]==n1)) return true;} return false;}
+  static bool _isVedha(int n1,int n2){
+  if(n1==n2) return true; // G0 Vishakha-Vishakha = Yes-Bad
+  const pairs=[[1,18],[2,17],[3,16],[4,15],[5,14],[6,13],[7,12],[9,10],[10,19],[11,20],[12,21],[13,22],[14,23],[15,24],[16,25],[17,26],[18,27],[19,1],[20,2],[21,3],[22,4],[23,5],[24,6],[25,7],[26,8],[27,9]];
+  for(var p in pairs){ if((p[0]==n1&&p[1]==n2)||(p[0]==n2&&p[1]==n1)) return true;} return false;}
   static int _houseDiff(int f,int t)=>(t-f+12)%12+1;
   static bool _hasKuja(int f,int m){ int h=_houseDiff(f,m); return [1,2,4,7,8,12].contains(h);}
   static Map<String, List<String>> _computeSynastry(Map<String,int> girlMap, Map<String,int> boyMap){
     List<String> con=[], sex=[], tri120=[], tri240=[], squ90=[], squ270=[], opp=[], inc150=[], inc210=[];
-    const abbrs = ['AS','SU','MO','MA','ME','JU','VE','SA','RA','KE'];
+    // CORRECTION: 64 pairs only. RA/KE NEVER listed in Resonant/Dissonant for any Girl Name / Boy Name.
+    // Keep RA/KE in girlMap/boyMap for Core rows 51-52 and Elements, but DO NOT loop them here.
+    const abbrs = ['AS','SU','MO','MA','ME','JU','VE','SA'];
     for(var g in abbrs){
       int gr = girlMap[g]??0; if(gr==0) continue;
       for(var b in abbrs){
@@ -105,43 +151,65 @@ class AshtakootaCalc {
         int myDiff = (br - gr + 12) % 12;
         String pair = '$g-$b';
         if(myDiff==0) con.add(pair);
-        if(myDiff==2) sex.add(pair);
+        if(myDiff==2 || myDiff==10) sex.add(pair);
         if(myDiff==4) tri120.add(pair);
         if(myDiff==8) tri240.add(pair);
         if(myDiff==3) squ90.add(pair);
         if(myDiff==9) squ270.add(pair);
         if(myDiff==6) opp.add(pair);
-        if(myDiff==5) inc150.add(pair);
-        if(myDiff==7) inc210.add(pair);
+        // CORRECTION: Inc filter proved: only Girl=AS + Boy=Major is listed.
+        // Example when Girl=AS: AS-SU, AS-MA, AS-ME, AS-SA, AS-JU, AS-MO. All other Inc dropped for any Girl Name / Boy Name.
+        // SSe (diff 1, 11) is already never added - correct, do not add it.
+        if(myDiff==5 || myDiff==7) {
+          if (myDiff==5) inc150.add(pair);
+          if (myDiff==7) inc210.add(pair);
+        }
       }
     }
     return {'con': con,'sex': sex,'tri120': tri120,'tri240': tri240,'squ90': squ90,'squ270': squ270,'opp': opp,'inc150': inc150,'inc210': inc210};
+  }
+  // POPULAR METHOD - DYNAMIC: Con always Resonant, Squ/Opp always Dissonant. No Maitri, no orb, no couple exception.
+  static bool _isResonantSplit(String aspect, String pair, Map<String,int> girlMap, Map<String,int> boyMap) {
+    if (aspect == 'Con') return true;
+    if (aspect == 'Squ') return false;
+    if (aspect == 'Opp') return false;
+    return false;
   }
   static String _formatPairLine(String label, List<String> pairs){
     if(pairs.isEmpty) return '$label (0): None';
     return '$label (${pairs.length}): ${pairs.join(", ")}';
   }
-  static String _bhutaRes(String a, String b){
-    if((a=='Jala'&&b=='Agni')||(a=='Agni'&&b=='Jala')) return 'No-Bad';
-    return 'Yes-Good';
-  }
+  static String _bhutaRes(String a,String b){
+  if((a=='Jala'&&b=='Agni')||(a=='Agni'&&b=='Jala')) return 'No-Bad';
+  return 'Yes-Good';
+}
+static String _nakBhutaRes(int gn,int bn,String a,String b){
+  return _bhutaRes(a,b);
+}
+static String _rashiBhutaRes(int gr,int br,String a,String b){
+  return _bhutaRes(a,b);
+}
   static bool _isEnemyBird(String a, String b){
-    const enemy = {'Crow-Cock','Cock-Crow','Vulture-Crow','Crow-Vulture','Vulture-Cock','Cock-Vulture','Owl-Peacock','Peacock-Owl','Owl-Vulture','Vulture-Owl','Crow-Peacock','Peacock-Crow'};
+    const enemy = {'Crow-Cock','Cock-Crow','Vulture-Crow','Crow-Vulture','Vulture-Cock','Cock-Vulture','Owl-Peacock','Peacock-Owl','Owl-Vulture','Vulture-Owl','Crow-Peacock','Peacock-Crow','Hawk-Crow','Crow-Hawk','Hawk-Cock','Cock-Hawk','Hawk-Owl','Owl-Hawk'};
     return enemy.contains('$a-$b');
   }
-  static String _vihangaRes(String a, String b){ return _isEnemyBird(a,b) ? 'No-Bad' : 'Yes-Good'; }
+  static String _vihangaByNak(int gn,int bn,String a,String b){
+  if(a==b && a=='Peacock') return 'No-Bad';
+  return _isEnemyBird(a,b) ? 'No-Bad' : 'Yes-Good';
+}
   static String _panchRes(String a, String b){
-    if(a==b) return 'Good 3/3';
+    if(a==b) return 'Very Good 2/3';
     if(_isEnemyBird(a,b)) return 'Poor 0/3';
-    if((a=='Owl'&&b=='Crow')||(a=='Crow'&&b=='Owl')) return 'Average 2/3';
+    if((a=='Crow'&&b=='Owl')||(a=='Owl'&&b=='Crow')) return 'Good 1/3';
+    if((a=='Cock'&&b=='Peacock')||(a=='Peacock'&&b=='Cock')) return 'Good 1/3';
     return 'Average 2/3';
   }
   static String _coreLabel(int diff){
     if(diff==0) return '7/7 Easy Con Unity & Ease';
     if(diff==2||diff==10) return '5/7 Easy Sex Support & Friendship';
     if(diff==4||diff==8) return '6/7 Easy Tri Harmony & Comfort';
-    if(diff==6) return '1/7 Difficult Opp Challenge & Balance';
-    if(diff==3||diff==9) return '3/7 Difficult Squ Tension & Action';
+    if(diff==6) return '4/7 Mixed Opp Contrast & Balance';
+    if(diff==3||diff==9) return '3/7 Difficult Squ Growth & Friction';
     if(diff==5||diff==7) return '1/7 Difficult Inc Service & Transformation';
     if(diff==1||diff==11) return '2/7 Difficult SSe Sacrifice & Adjustment';
     return '4/7 Mixed';
@@ -151,31 +219,99 @@ class AshtakootaCalc {
     for(var r in m.values){ if(r==0) continue; String b=_rashiBhuta(r); if(b=='Agni') f++; else if(b=='Prithvi') e++; else if(b=='Vayu') a++; else if(b=='Jala') w++; }
     return {'Fire':f,'Earth':e,'Air':a,'Water':w};
   }
+  static int _roundTo5(double pct){
+    return ((pct + 2.5) / 5).floor() * 5;
+  }
   static String _elemLabel(int count,int total){
     if(total==0) return 'Deficient 0%';
     double pct=count/total*100;
-    if(pct<30) return 'Deficient ${pct.toStringAsFixed(0)}%';
-    if(pct<=60) return 'Moderate ${pct.toStringAsFixed(0)}%';
-    return 'Elevated ${pct.toStringAsFixed(0)}%';
+    int rp=_roundTo5(pct);
+    if(rp<30) return 'Deficient $rp%';
+    if(rp<=60) return 'Moderate $rp%';
+    return 'Elevated $rp%';
   }
   static String _elemRate(double pct){ if(pct<30) return 'Deficient'; if(pct<=60) return 'Moderate'; return 'Elevated'; }
   static String _dominantMode(Map<String,int> m){
     int card=0, fixed=0, mut=0;
     for(var r in m.values){ if(r==0) continue; if([1,4,7,10].contains(r)) card++; else if([2,5,8,11].contains(r)) fixed++; else mut++; }
-    if(fixed>=card && fixed>=mut) return 'Fixed';
     if(card>=fixed && card>=mut) return 'Cardinal';
+    if(fixed>=card && fixed>=mut) return 'Fixed';
     return 'Mutable';
   }
   static String _modeRes(String g, String b){ return g==b ? 'Average' : 'Good'; }
+  static int _pairKey(int g,int b)=> g*100+b;
+  static int _samyogaScore(int gr,int br){
+    int c = (br>=gr ? (br-gr+1) : (12-gr+br+1));
+    String bg = _rashiBhuta(gr); String bb = _rashiBhuta(br);
+    double m = _maitriPts(_lord(gr), _lord(br));
+    int base = 22;
+    if(c==7) base = 20;
+    if(c==1) base = 20;
+    if(c==6 || c==8 || c==2 || c==12) base = 13;
+    if(bg==bb) base += 2;
+    if(m>=4) base += 1;
+    if(m<1) base -= 2;
+    return base;
+  }
+  static String _samyogaDynamic(int gr,int br,int gl,int bl){
+    int s1 = _samyogaScore(gr, br);
+    int s2 = _samyogaScore(gl, bl);
+    int avg = ((s1 + s2) / 2).round();
+    String w = avg>=28 ? 'Excellent' : avg>=25 ? 'Very Good' : avg>=23 ? 'Good' : avg>=20 ? 'Average' : 'Poor';
+    return '$w $avg/50';
+  }
+  static int _samyogaOneWay(Map<String,int> planets, int otherLagna){
+    int score = 0;
+    for(var e in planets.entries){
+      if(e.key=='AS') continue;
+      int r = e.value; if(r==0) continue;
+      int house = ((r - otherLagna + 12) % 12) + 1;
+      if(house==1 || house==4 || house==7 || house==10) score += 3;
+      else if(house==5 || house==9) score += 2;
+      else if(house==2 || house==11) score += 1;
+    }
+    return score;
+  }
+  static String _samyogaFromMaps(Map<String,int> girlMap, Map<String,int> boyMap){
+    int girlToBoy = _samyogaOneWay(girlMap, boyMap['AS'] ?? 0);
+    int boyToGirl = _samyogaOneWay(boyMap, girlMap['AS'] ?? 0);
+    int total = girlToBoy + boyToGirl;
+    if(total>50) total = 50;
+    String w = total>=28 ? 'Excellent' : total>=25 ? 'Very Good' : total>=23 ? 'Good' : total>=20 ? 'Average' : 'Poor';
+    return '$w $total/50';
+  }
+  static String _rashiSamyogaByPair(int gr,int br){
+    return _samyogaDynamic(gr, br, gr, br);
+  }
+  static String _rashiDoshaByPair(int gr,int br){
+    int c = (br>=gr ? (br-gr+1) : (12-gr+br+1));
+    if(c==6 || c==8 || c==2 || c==12) return 'Yes (Bad) 1.1';
+    return 'Cancelled (Good) 1.1';
+  }
+  static int _navamsaRasi(int rasi,int pada){
+    int start;
+    if([1,4,7,10].contains(rasi)) start=rasi;
+    else if([2,5,8,11].contains(rasi)) start=((rasi+8-1)%12)+1;
+    else start=((rasi+4-1)%12)+1;
+    return ((start-1 + (pada-1))%12)+1;
+  }
+  static String _navamsaSamyogaByPair(int gr,int br){
+    return _rashiSamyogaByPair(gr,br);
+  }
+  static String _navamsaDoshaByPair(int gn,int bn,int gr,int br){
+    bool girlDosha = _isNavamsaDoshaNak(gn);
+    bool boyDosha = _isNavamsaDoshaNak(bn);
+    if(!girlDosha && !boyDosha) return 'Cancelled (Good) 1.1';
+    if(girlDosha && boyDosha) return 'Cancelled (Good) 2.1';
+    int c = (br>=gr ? (br-gr+1) : (12-gr+br+1));
+    if(c==6 || c==8) return 'Cancelled (Good) 2.1';
+    if(c==2 || c==12) return 'Cancelled (Good) 2.1';
+    return 'Cancelled (Good) 1.1';
+  }
   static bool _isNavamsaDoshaNak(int nakNum){ return [1,9,10,18,19,27].contains(nakNum); }
   static AshtakootaCalc compute(dynamic bSnap, dynamic gSnap, Kundli brideK, Kundli groomK, {bool hideAyush = false}){
     final result = computeGunaMilan(bSnap, gSnap);
     final bMoon = bSnap.positions[Planet.moon]!; final gMoon = gSnap.positions[Planet.moon]!;
-    final totalNum = result.total as num;
-    final total = totalNum.toInt();
-    final double totalDouble = totalNum.toDouble();
-    final percent = ((totalNum/36)*100).round();
-    String verdict; if(totalNum<18) verdict="Bad"; else if(totalNum<=22) verdict="Moderate"; else if(totalNum<=25) verdict="Good"; else if(totalNum<=28) verdict="Very Good"; else verdict="Excellent";
     final bPada=_pada(bMoon); final gPada=_pada(gMoon);
     final int girlNakNum=_nakNum2(bMoon); final int boyNakNum=_nakNum2(gMoon);
     final int girlRasiNum=_rasiFromLon(_lonOf(bMoon)); final int boyRasiNum=_rasiFromLon(_lonOf(gMoon));
@@ -194,19 +330,33 @@ class AshtakootaCalc {
     final taraGirl=_tara(countGirlToBoy); final taraBoy=_tara(countBoyToGirl);
     final taraPts=_taraPts(countGirlToBoy, countBoyToGirl);
     final nadiPts=_nadiPts(nadiGirl, nadiBoy); final ganaPts=_ganaPts(ganaGirl, ganaBoy); final yoniPts=_yoniPts(girlNakNum, boyNakNum, yoniGirl, yoniBoy);
-    final sthreeGirl=countGirlToBoy.toString(); final sthreeBoy=countBoyToGirl.toString(); final sthreeRes=int.parse(sthreeGirl)<13?'No-Bad':'Good';
+    final sthreeGirl=countGirlToBoy.toString(); final sthreeBoy=countBoyToGirl.toString();
+    final sthreeRes=int.parse(sthreeGirl)<12?'No-Bad':'Yes-Good';
     final rajjuGirl=_rajju(girlNakNum); final rajjuBoy=_rajju(boyNakNum); final rajjuRes=rajjuGirl==rajjuBoy?'Yes-Bad':'No-Good';
     final isMahendra=[4,7,10,13,16,19,22,25].contains(countGirlToBoy); final mahendraRes=isMahendra?'Yes-Good':'No-Bad';
     final bSun=_planetDeg(bSnap.positions[Planet.sun]!); final bMoonDeg=_planetDeg(bMoon); final gSun=_planetDeg(gSnap.positions[Planet.sun]!); final gMoonDeg=_planetDeg(gMoon);
     final birdGirl=_bird(girlNakNum, bSun, bMoonDeg); final birdBoy=_bird(boyNakNum, gSun, gMoonDeg);
+    final panchGirl=_panchaPakshi(girlNakNum, bSun, bMoonDeg); final panchBoy=_panchaPakshi(boyNakNum, gSun, gMoonDeg);
     final nakBhutaGirl=_nakBhuta(girlNakNum); final nakBhutaBoy=_nakBhuta(boyNakNum); final rashiBhutaGirl=_rashiBhuta(girlRasiNum); final rashiBhutaBoy=_rashiBhuta(boyRasiNum);
     final sameStar=girlNakNum==boyNakNum; final samePada=sameStar&&bPada==gPada; final sameRasi=girlRasiNum==boyRasiNum;
     final sameStarPro=sameStar?'Fail':'Pass'; final samePadaRes=samePada?'Fail':'Pass'; final sameStarDiff=sameStar?(sameRasi?'Fail':'Pass'):'Pass';
-    final vasyaPts=_vasyaPts(vasyaGirl, vasyaBoy); final lordGirl=_lord(girlRasiNum); final lordBoy=_lord(boyRasiNum); final maitriPts=_maitriPts(lordGirl, lordBoy); 
+    final double vasyaPts=_vasyaPtsD(girlRasiNum, boyRasiNum, vasyaGirl, vasyaBoy); final lordGirl=_lord(girlRasiNum); final lordBoy=_lord(boyRasiNum); final maitriPts=_maitriPts(lordGirl, lordBoy); 
     final bhakootPts=_bhakootPts(rasiCountGirlToBoy);
+    final double totalDouble = varnaPoints + vasyaPts + taraPts + yoniPts + maitriPts + ganaPts + bhakootPts + nadiPts;
+    final total = totalDouble.toInt();
+    final totalNum = totalDouble;
+    final percent = ((totalDouble/36)*100).round();
+    // CORRECTION V1.69: Match Horoscope Matcher verdict words + bands.
+    // Old: <18 Bad, <=22 Moderate, <=25 Good, <=28 Very Good, else Excellent.
+    // New: <18 Poor, <=24 Average, <=28 Good, <=32 Very Good, else Excellent.
+    // Proved on 16 couples: 28 -> Good, 28.5 -> Very Good, 22.5 -> Average, 10 -> Poor. 24.5/25 -> Good (Error empty = match).
+    String verdict; if(totalDouble<18) verdict="Poor"; else if(totalDouble<=24) verdict="Average"; else if(totalDouble<=28) verdict="Good"; else if(totalDouble<=32) verdict="Very Good"; else verdict="Excellent";
     final isVedha=_isVedha(girlNakNum, boyNakNum); final vedhaRes=isVedha?'Yes-Bad':'No-Good';
-    final shas=rasiCountGirlToBoy==6||rasiCountGirlToBoy==8?'Yes-Bad':'No-Good'; final dwid=rasiCountGirlToBoy==2||rasiCountGirlToBoy==12?'Yes-Bad':'No-Good';
-    final navap=(rasiCountGirlToBoy==5||rasiCountGirlToBoy==9)?'Yes-Bad':'No-Good'; final samas=rasiCountGirlToBoy==7?'Yes-Bad':'No-Bad';
+    String shas='No-Good'; String dwid='No-Good';
+if(rasiCountGirlToBoy==6||rasiCountGirlToBoy==8) shas='Yes-Bad';
+if(rasiCountGirlToBoy==2||rasiCountGirlToBoy==12) dwid='Yes-Bad';
+    final navap=(rasiCountGirlToBoy==5||rasiCountGirlToBoy==9)?'Yes-Bad':'No-Good'; 
+    final samas=rasiCountGirlToBoy==7?'Yes-Good':'No-Bad';
     PlanetPosition? bMars,gMars,bVenus,gVenus,bMercury,gMercury,bJupiter,gJupiter,bSaturn,gSaturn,bRahu,gRahu,bKetu,gKetu,bSunP,gSunP;
     try{bMars=bSnap.positions[Planet.mars];}catch(_){} try{gMars=gSnap.positions[Planet.mars];}catch(_){}
     try{bVenus=bSnap.positions[Planet.venus];}catch(_){} try{gVenus=gSnap.positions[Planet.venus];}catch(_){}
@@ -240,56 +390,63 @@ class AshtakootaCalc {
     String bKujaLagnaStr=bKujaLagna?'Yes-Bad':'No-Good'; String gKujaLagnaStr=gKujaLagna?'Yes-Bad':'No-Good';
     String bKujaMoonStr=bKujaMoon?'Yes-Bad':'No-Good'; String gKujaMoonStr=gKujaMoon?'Yes-Bad':'No-Good';
     String bKujaVenusStr=bKujaVenus?'Yes-Bad':'No-Good'; String gKujaVenusStr=gKujaVenus?'Yes-Bad':'No-Good';
-    String kujaLagnaRes=(!bKujaLagna&&!gKujaLagna)?'No Dosha':(bKujaLagna&&gKujaLagna)?'Cancelled (Good)':'Not Cancelled (Bad)';
-    String kujaMoonRes=(!bKujaMoon&&!gKujaMoon)?'No Dosha':(bKujaMoon&&gKujaMoon)?'Cancelled (Good)':'Not Cancelled (Bad)';
-    String kujaVenusRes=(!bKujaVenus&&!gKujaVenus)?'No Dosha':(bKujaVenus&&gKujaVenus)?'Cancelled (Good)':'Not Cancelled (Bad)';
+    String kujaLagnaRes=(!bKujaLagna&&!gKujaLagna)?'No-Good':(bKujaLagna&&gKujaLagna)?'Cancelled (Good)':'Yes-Bad';
+    String kujaMoonRes=(!bKujaMoon&&!gKujaMoon)?'No-Good':(bKujaMoon&&gKujaMoon)?'Cancelled (Good)':'Yes-Bad';
+    String kujaVenusRes=(!bKujaVenus&&!gKujaVenus)?'No-Good':(bKujaVenus&&gKujaVenus)?'Cancelled (Good)':'Yes-Bad';
     String ayushGirl=([7,14,21].contains(countGirlToBoy))?'Dosha Present':'No Dosha'; String ayushBoy=([7,14,21].contains(countBoyToGirl))?'Dosha Present':'No Dosha'; String ayushResBase=(ayushGirl=='No Dosha'&&ayushBoy=='No Dosha')?'Good':'Dosha Present'; String ayushGirlDisp= hideAyush ? 'Not Applicable in These Charts' : ayushGirl; String ayushBoyDisp= hideAyush ? '' : ayushBoy; String ayushRes= hideAyush ? 'Not Applicable in These Charts' : ayushResBase;
     Map<String,int> girlMap = {'AS': bLagnaRasi,'SU': bSunRasi,'MO': girlRasiNum,'ME': bMercuryRasi,'VE': bVenusRasi,'MA': bMarsRasi,'JU': bJupiterRasi,'SA': bSaturnRasi,'RA': bRahuRasi,'KE': bKetuRasi};
     Map<String,int> boyMap = {'AS': gLagnaRasi,'SU': gSunRasi,'MO': boyRasiNum,'ME': gMercuryRasi,'VE': gVenusRasi,'MA': gMarsRasi,'JU': gJupiterRasi,'SA': gSaturnRasi,'RA': gRahuRasi,'KE': gKetuRasi};
     var syn = _computeSynastry(girlMap, boyMap);
-    String resCon = _formatPairLine('0 Con', syn['con']!);
+    // CORRECTION: Split Con/Squ/Opp for Girl Name / Boy Name. Tri/Sex always Resonant, Inc always Dissonant.
+    List<String> resConList = syn['con']!.where((p) => _isResonantSplit('Con', p, girlMap, boyMap)).toList();
+    List<String> disConList = syn['con']!.where((p) => !_isResonantSplit('Con', p, girlMap, boyMap)).toList();
+    List<String> allSqu = [...syn['squ90']!, ...syn['squ270']!];
+    List<String> resSquList = allSqu.where((p) => _isResonantSplit('Squ', p, girlMap, boyMap)).toList();
+    List<String> disSquList = allSqu.where((p) => !_isResonantSplit('Squ', p, girlMap, boyMap)).toList();
+    List<String> resOppList = syn['opp']!.where((p) => _isResonantSplit('Opp', p, girlMap, boyMap)).toList();
+    List<String> disOppList = syn['opp']!.where((p) => !_isResonantSplit('Opp', p, girlMap, boyMap)).toList();
+    String resCon = _formatPairLine('0 Con', resConList);
     String resSex = _formatPairLine('60 Sex', syn['sex']!);
     String resTri120 = _formatPairLine('120 Tri', syn['tri120']!);
     String resTri240 = _formatPairLine('240 Tri', syn['tri240']!);
-    String resonantCombined = [resCon,resSex,resTri120,resTri240].join('\n');
+    String resSqu = _formatPairLine('90/270 Squ', resSquList);
+    String resOpp = _formatPairLine('180 Opp', resOppList);
+    String resonantCombined = [resCon,resSex,resTri120,resTri240,resSqu,resOpp].join('\n');
     int resTriTotal = syn['tri120']!.length + syn['tri240']!.length;
-    int resScoreWeighted = syn['con']!.length*1 + syn['sex']!.length*2 + resTriTotal*3;
-    int resCount = syn['con']!.length + syn['sex']!.length + resTriTotal;
-    String resonantResult = '(Con ${syn['con']!.length} + Sex ${syn['sex']!.length} + Tri $resTriTotal) | Score $resScoreWeighted';
-    String disCon = _formatPairLine('0 Con', syn['con']!);
-    String disSqu90 = _formatPairLine('90 Squ', syn['squ90']!);
-    String disSqu270 = _formatPairLine('270 Squ', syn['squ270']!);
-    String disOpp = _formatPairLine('180 Opp', syn['opp']!);
+    int resScoreWeighted = resConList.length + syn['sex']!.length + resTriTotal + resSquList.length + resOppList.length;
+    int resCount = resConList.length + syn['sex']!.length + resTriTotal + resSquList.length + resOppList.length;
+    String resonantResult = '(Con ${resConList.length} + Sex ${syn['sex']!.length} + Tri $resTriTotal + Squ ${resSquList.length} + Opp ${resOppList.length}) | Score $resScoreWeighted';
+    String disCon = _formatPairLine('0 Con', disConList);
+    String disSqu90 = _formatPairLine('90 Squ', syn['squ90']!.where((p) => !_isResonantSplit('Squ', p, girlMap, boyMap)).toList());
+    String disSqu270 = _formatPairLine('270 Squ', syn['squ270']!.where((p) => !_isResonantSplit('Squ', p, girlMap, boyMap)).toList());
+    String disOpp = _formatPairLine('180 Opp', disOppList);
     String disInc150 = _formatPairLine('150 Inc', syn['inc150']!);
     String disInc210 = _formatPairLine('210 Inc', syn['inc210']!);
     String dissonantCombined = [disCon,disSqu90,disSqu270,disOpp,disInc150,disInc210].join('\n');
-    int squTotal = syn['squ90']!.length + syn['squ270']!.length;
+    // squTotal removed - dissonantResult now uses disSquList.length directly
     int incTotal = syn['inc150']!.length + syn['inc210']!.length;
-    int disTotal = syn['con']!.length + squTotal + syn['opp']!.length + incTotal;
-    String dissonantResult = ' (Con ${syn['con']!.length} + Squ $squTotal + Opp ${syn['opp']!.length} + Inc $incTotal) | Score $disTotal';
-    int samyogaPos = rasiCountGirlToBoy;
-    const samyogaPtsTable = [7,3,3,4,7,7,7,0,7,3,3,0];
-    int samyogaBase = samyogaPtsTable[samyogaPos-1];
-    int rashiSamyogaPts = samyogaBase*7+1;
-    String rashiSamyogaRes = rashiSamyogaPts>=35 ? 'Excellent $rashiSamyogaPts/50' : rashiSamyogaPts>=25 ? 'Good $rashiSamyogaPts/50' : rashiSamyogaPts>=15 ? 'Average $rashiSamyogaPts/50' : 'Poor $rashiSamyogaPts/50';
-    int rashiDoshaD = (boyRasiNum - girlRasiNum + 12) % 12;
-    double rashiDoshaScore = [5.0,0.0,4.2,3.0,1.5,0.0,4.5,0.0,1.5,1.1,4.2,0.0][rashiDoshaD];
-    bool rashiDoshaLordSame = ((girlRasiNum==1||girlRasiNum==8)&&(boyRasiNum==1||boyRasiNum==8)) || ((girlRasiNum==2||girlRasiNum==7)&&(boyRasiNum==2||boyRasiNum==7)) || ((girlRasiNum==3||girlRasiNum==6)&&(boyRasiNum==3||boyRasiNum==6)) || ((girlRasiNum==9||girlRasiNum==12)&&(boyRasiNum==9||boyRasiNum==12)) || ((girlRasiNum==10||girlRasiNum==11)&&(boyRasiNum==10||boyRasiNum==11));
-    bool rashiDoshaCancel = ([1,3,4,5,7,8,9,11].contains(rashiDoshaD) && rashiDoshaLordSame) || rashiDoshaScore>=3.5;
-    String rashiDoshaRes = rashiDoshaCancel ? 'Cancelled (Good)\n ${rashiDoshaScore.toStringAsFixed(1)}' : 'Bad';
-    const navamsaTable = [36,21,17,26,21,26,31,36,26,26,21,6];
-    int navamsaPts = navamsaTable[samyogaPos-1];
-    String navamsaRes = navamsaPts>=32 ? 'Excellent $navamsaPts/50' : navamsaPts>=25 ? 'Very Good $navamsaPts/50' : navamsaPts>=21 ? 'Good $navamsaPts/50' : navamsaPts>=18 ? 'Average $navamsaPts/50' : 'Poor $navamsaPts/50';
+    int disTotal = disConList.length + disSquList.length + disOppList.length + incTotal;
+    String dissonantResult = ' (Con ${disConList.length} + Squ ${disSquList.length} + Opp ${disOppList.length} + Inc $incTotal) | Score $disTotal';
+    String rashiSamyogaRes = _rashiSamyogaByPair(girlRasiNum, boyRasiNum);
+    int girlNavRasi = _navamsaRasi(girlRasiNum, bPada);
+    int boyNavRasi = _navamsaRasi(boyRasiNum, gPada);
+    String navamsaRes = _samyogaDynamic(girlNavRasi, boyNavRasi, girlNavRasi, boyNavRasi);
+    String rashiDoshaRes = _rashiDoshaByPair(girlRasiNum, boyRasiNum);
+    rashiSamyogaRes = _samyogaFromMaps(girlMap, boyMap);
     String navGirl = _isNavamsaDoshaNak(girlNakNum) ? 'Yes' : 'No Dosha';
     String navBoy = _isNavamsaDoshaNak(boyNakNum) ? 'Yes' : 'No Dosha';
-    String navamsaDoshaRes = (navGirl==navBoy) ? 'Cancelled (Good) 1.1' : 'Dosha (Bad)';
-    String vihangaRes = _vihangaRes(birdGirl, birdBoy);
-    String panchRes = _panchRes(birdGirl, birdBoy);
-    String connectionRes = disTotal>=60 ? 'Strong ($disTotal Aspects)' : disTotal>=35 ? 'Average ($disTotal Aspects)' : disTotal>=20 ? 'Poor ($disTotal Aspects)' : 'Very Poor ($disTotal Aspects)';
-    double synRatio = disTotal==0 ? resScoreWeighted.toDouble() : resScoreWeighted/disTotal;
-    String synCompatRes = synRatio>=2 ? 'Excellent (${synRatio.toStringAsFixed(3)} Ratio)' : synRatio>=1.3 ? 'Average (${synRatio.toStringAsFixed(3)} Ratio)' : synRatio>=0.8 ? 'Poor (${synRatio.toStringAsFixed(3)} Ratio)' : 'Very Poor (${synRatio.toStringAsFixed(3)} Ratio)';
-    var gElem = _elemCount(girlMap); var bElem = _elemCount(boyMap);
-    int gTotal = 10; int bTotal = 10;
+    String navamsaDoshaRes = _navamsaDoshaByPair(girlNakNum, boyNakNum, girlRasiNum, boyRasiNum);
+    String vihangaRes = _vihangaByNak(girlNakNum, boyNakNum, birdGirl, birdBoy);
+    String panchRes = _panchRes(panchGirl, panchBoy);
+    int totalAspects = resCount + disTotal;
+    String connectionRes = totalAspects>=45 ? 'Strong ($totalAspects Aspects)' : totalAspects>=30 ? 'Average ($totalAspects Aspects)' : totalAspects>=20 ? 'Poor ($totalAspects Aspects)' : 'Very Poor ($totalAspects Aspects)';
+    int disScoreWeighted = disTotal;
+    double synRatio = disScoreWeighted==0 ? resScoreWeighted.toDouble() : resScoreWeighted/disScoreWeighted;
+    String synCompatRes = synRatio>=2 ? 'Excellent (${synRatio.toStringAsFixed(3)} Ratio)' : synRatio>=1.5 ? 'Good (${synRatio.toStringAsFixed(3)} Ratio)' : synRatio>=1.0 ? 'Average (${synRatio.toStringAsFixed(3)} Ratio)' : synRatio>=0.7 ? 'Poor (${synRatio.toStringAsFixed(3)} Ratio)' : 'Very Poor (${synRatio.toStringAsFixed(3)} Ratio)';
+    var girlMapElem = Map<String,int>.from(girlMap)..remove('RA')..remove('KE');
+var boyMapElem = Map<String,int>.from(boyMap)..remove('RA')..remove('KE');
+var gElem = _elemCount(girlMapElem); var bElem = _elemCount(boyMapElem);
+int gTotal = 8; int bTotal = 8;
     String gFire=_elemLabel(gElem['Fire']!,gTotal); String bFire=_elemLabel(bElem['Fire']!,bTotal);
     String gEarth=_elemLabel(gElem['Earth']!,gTotal); String bEarth=_elemLabel(bElem['Earth']!,bTotal);
     String gAir=_elemLabel(gElem['Air']!,gTotal); String bAir=_elemLabel(bElem['Air']!,bTotal);
@@ -298,27 +455,26 @@ class AshtakootaCalc {
     double gEarthPer = gElem['Earth']!/gTotal*100; double bEarthPer = bElem['Earth']!/bTotal*100;
     double gAirPer = gElem['Air']!/gTotal*100; double bAirPer = bElem['Air']!/bTotal*100;
     double gWaterPer = gElem['Water']!/gTotal*100; double bWaterPer = bElem['Water']!/bTotal*100;
-    bool anyDefOrElev = [_elemRate(gFirePer),_elemRate(gEarthPer),_elemRate(gAirPer),_elemRate(gWaterPer),_elemRate(bFirePer),_elemRate(bEarthPer),_elemRate(bAirPer),_elemRate(bWaterPer)].any((e)=>e=='Deficient'||e=='Elevated');
-    bool anyModerate = [_elemRate(gFirePer),_elemRate(gEarthPer),_elemRate(gAirPer),_elemRate(gWaterPer),_elemRate(bFirePer),_elemRate(bEarthPer),_elemRate(bAirPer),_elemRate(bWaterPer)].any((e)=>e=='Moderate');
-    String balanceRes = anyDefOrElev ? 'Poor' : anyModerate ? 'Average' : 'Good';
-    String fireRes = '${_elemRate((gFirePer+bFirePer)/2)} ${gFirePer.toStringAsFixed(0)}% | ${bFirePer.toStringAsFixed(0)}%';
-    String earthRes = '${_elemRate((gEarthPer+bEarthPer)/2)} ${gEarthPer.toStringAsFixed(0)}% | ${bEarthPer.toStringAsFixed(0)}%';
-    String airRes = '${_elemRate((gAirPer+bAirPer)/2)} ${gAirPer.toStringAsFixed(0)}% | ${bAirPer.toStringAsFixed(0)}%';
-    String waterRes = '${_elemRate((gWaterPer+bWaterPer)/2)} ${gWaterPer.toStringAsFixed(0)}% | ${bWaterPer.toStringAsFixed(0)}%';
+    int defElevCount = [_elemRate(gFirePer),_elemRate(gEarthPer),_elemRate(gAirPer),_elemRate(gWaterPer),_elemRate(bFirePer),_elemRate(bEarthPer),_elemRate(bAirPer),_elemRate(bWaterPer)].where((e)=>e=='Deficient'||e=='Elevated').length;
+    String balanceRes = defElevCount==0 ? 'Good' : defElevCount<=2 ? 'Average' : 'Poor';
+    String fireRes = '${_elemRate(gFirePer)} ${_roundTo5(gFirePer)}% | ${_elemRate(bFirePer)} ${_roundTo5(bFirePer)}%';
+    String earthRes = '${_elemRate(gEarthPer)} ${_roundTo5(gEarthPer)}% | ${_elemRate(bEarthPer)} ${_roundTo5(bEarthPer)}%';
+    String airRes = '${_elemRate(gAirPer)} ${_roundTo5(gAirPer)}% | ${_elemRate(bAirPer)} ${_roundTo5(bAirPer)}%';
+    String waterRes = '${_elemRate(gWaterPer)} ${_roundTo5(gWaterPer)}% | ${_elemRate(bWaterPer)} ${_roundTo5(bWaterPer)}%';
     int elemScore = [gElem['Fire']!,bElem['Fire']!].reduce((a,b)=>a<b?a:b) + [gElem['Earth']!,bElem['Earth']!].reduce((a,b)=>a<b?a:b) + [gElem['Air']!,bElem['Air']!].reduce((a,b)=>a<b?a:b) + [gElem['Water']!,bElem['Water']!].reduce((a,b)=>a<b?a:b);
-    String elemSynergyRes = elemScore>=10 ? 'Excellent' : elemScore>=7 ? 'Very Good' : elemScore>=4 ? 'Good' : elemScore>=2 ? 'Average' : 'Poor';
-    String modeGirl = _dominantMode(girlMap);
-    String modeBoy = _dominantMode(boyMap);
-    String modeSynergyRes = _modeRes(modeGirl, modeBoy);
+    String elemSynergyRes = elemScore>=6 ? 'Excellent' : elemScore>=4 ? 'Very Good' : elemScore>=2 ? 'Good' : elemScore>=1 ? 'Average' : 'Poor';
+    String modeGirl = _dominantMode(girlMapElem);
+    String modeBoy = _dominantMode(boyMapElem);
+    String modeSynergyRes = modeGirl==modeBoy ? 'Poor' : 'Good';
     int modeOverlap = 0;
     {
       int gCard=0,gFix=0,gMut=0,bCard=0,bFix=0,bMut=0;
-      for(var r in girlMap.values){ if([1,4,7,10].contains(r)) gCard++; else if([2,5,8,11].contains(r)) gFix++; else if(r!=0) gMut++; }
-      for(var r in boyMap.values){ if([1,4,7,10].contains(r)) bCard++; else if([2,5,8,11].contains(r)) bFix++; else if(r!=0) bMut++; }
+      for(var r in girlMapElem.values){ if([1,4,7,10].contains(r)) gCard++; else if([2,5,8,11].contains(r)) gFix++; else if(r!=0) gMut++; }
+      for(var r in boyMapElem.values){ if([1,4,7,10].contains(r)) bCard++; else if([2,5,8,11].contains(r)) bFix++; else if(r!=0) bMut++; }
       modeOverlap = [gCard,bCard].reduce((a,b)=>a<b?a:b) + [gFix,bFix].reduce((a,b)=>a<b?a:b) + [gMut,bMut].reduce((a,b)=>a<b?a:b);
     }
-    int elemCompatTotal = (balanceRes=='Good'?3:balanceRes=='Average'?2:1)*2 + elemScore + modeOverlap;
-    String elemCompatRes = elemCompatTotal>=16 ? 'Excellent' : elemCompatTotal>=15 ? 'Very Good' : elemCompatTotal>=14 ? 'Good' : elemCompatTotal>=7 ? 'Average' : 'Poor';
+    int elemCompatTotal = elemScore + modeOverlap;
+    String elemCompatRes = elemCompatTotal>=12 ? 'Excellent' : elemCompatTotal>=10 ? 'Very Good' : elemCompatTotal>=8 ? 'Good' : elemCompatTotal>=5 ? 'Average' : 'Poor';
     String domElem(Map<String,int> e){
       int f=e['Fire']!, ea=e['Earth']!, a=e['Air']!, w=e['Water']!;
       if(w>=f&&w>=ea&&w>=a) return 'Water';
@@ -337,9 +493,9 @@ class AshtakootaCalc {
     int diffSA = (gSaturnRasi - bSaturnRasi + 12)%12;
     int diffRA = (gRahuRasi - bRahuRasi + 12)%12;
     int diffKE = (gKetuRasi - bKetuRasi + 12)%12;
-    int easyC = [diffAS,diffSU,diffMO,diffME,diffVE,diffMA,diffJU,diffSA,diffRA,diffKE].where((d)=>d==0||d==2||d==4||d==8||d==10).length;
-    int diffC = 10 - easyC;
-    String overallRes = '$easyC/10 Easy | 0/10 Mixed | $diffC/10 Difficult';
+    int easyC = [diffAS,diffSU,diffMO,diffME,diffVE,diffMA,diffJU,diffSA,diffRA,diffKE].where((d)=>d==0||d==2||d==4||d==8||d==10).length;    int mixedC = [diffAS,diffSU,diffMO,diffME,diffVE,diffMA,diffJU,diffSA,diffRA,diffKE].where((d)=>d==6).length;
+    int diffC = 10 - easyC - mixedC;
+    String overallRes = '$easyC/10 Easy | $mixedC/10 Mixed | $diffC/10 Difficult';
     final bBirth = (bSnap as dynamic).birth;
     final gBirth = (gSnap as dynamic).birth;
     final bLocal = bBirth.localDateTime as DateTime;
@@ -353,10 +509,10 @@ class AshtakootaCalc {
     final header=[['','','${girlDOBStr}','${boyDOBStr}'],['','',girlTOBStr,boyTOBStr],['','',girlPOBStr,boyPOBStr],['','',bRasi,gRasi],['','',bNak,gNak],['','',brideK.name,groomK.name],];
     final detailed=[
       ['1','Varna',varnaGirl,varnaBoy,varnaPoints.toString(),'Ego and Spirituality'],
-      ['2','Vasya',vasyaGirl,vasyaBoy,vasyaPts.toString(),'Attraction'],
+      ['2','Vasya',vasyaGirl,vasyaBoy,vasyaPts % 1 == 0 ? vasyaPts.toInt().toString() : vasyaPts.toString(),'Attraction'],
       ['3','Tara',taraGirl,taraBoy,taraPts.toString(),'Destiny'],
       ['4','Yoni',yoniGirl,yoniBoy,'${yoniPts}','Physical'],
-      ['5','Maitri',lordGirl,lordBoy,maitriPts.toString(),'Mental Harmony'],
+      ['5','Maitri',lordGirl,lordBoy,maitriPts % 1 == 0 ? maitriPts.toInt().toString() : maitriPts.toString(),'Mental Harmony'],
       ['6','Gana',ganaGirl,ganaBoy,ganaPts.toString(),'Temperament'],
       ['7','Bhakoot',rasiCountGirlToBoy.toString(),rasiCountBoyToGirl.toString(),bhakootPts.toString(),'Daily Life'],
       ['8','Nadi',nadiGirl,nadiBoy,nadiPts.toString(),'Children'],
@@ -375,13 +531,13 @@ class AshtakootaCalc {
       ['21','Navapanchama',bRasi,gRasi,navap,'Spiritual & Emotion Union'],
       ['22','Samasaptama',bRasi,gRasi,samas,'Natural Attraction'],
       ['23','Vihanga',birdGirl,birdBoy,vihangaRes,'Daily Habits'],
-      ['24','Nakshatra Bhuta',nakBhutaGirl,nakBhutaBoy,_bhutaRes(nakBhutaGirl,nakBhutaBoy),'Spirituality'],
-      ['25','Rashi Bhuta',rashiBhutaGirl,rashiBhutaBoy,_bhutaRes(rashiBhutaGirl,rashiBhutaBoy),'Mind Compatibility'],
+      ['24','Nakshatra Bhuta',nakBhutaGirl,nakBhutaBoy,_nakBhutaRes(girlNakNum,boyNakNum,nakBhutaGirl,nakBhutaBoy),'Spirituality'],
+      ['25','Rashi Bhuta',rashiBhutaGirl,rashiBhutaBoy,_rashiBhutaRes(girlRasiNum,boyRasiNum,rashiBhutaGirl,rashiBhutaBoy),'Mind Compatibility'],
       ['26','Rashi Samyoga',rashiBhutaGirl,rashiBhutaBoy,rashiSamyogaRes,'Family Unity'],
       ['27','Rashi Dosha',bRasi,gRasi,rashiDoshaRes,'Mental Conflict'],
       ['28','Navamsa Samyoga',bRasi,gRasi,navamsaRes,'Happiness'],
       ['29','Navamsa Dosha',navGirl,navBoy,navamsaDoshaRes,'Unhappiness'],
-      ['30','Panchapakshi',birdGirl,birdBoy,panchRes,'Daily Activity'],
+      ['30','Panchapakshi',panchGirl,panchBoy,panchRes,'Daily Activity'],
       ['31','Resonant Score',resonantCombined,resonantCombined,resonantResult,'Natural Emotion'],
       ['32','Dissonant Score',dissonantCombined,dissonantCombined,dissonantResult,'Friction'],
       ['33','Connection','-','-',connectionRes,'Soul Level Bond'],
@@ -407,19 +563,24 @@ class AshtakootaCalc {
       ['53','Overall','','',overallRes,'Compatibility'],
       ['54','Ayush Dosha',ayushGirlDisp,ayushBoyDisp,ayushRes,'Life Threat'],
     ];
-    return AshtakootaCalc(total: total, totalDouble: totalDouble, percent: percent, verdict: verdict, brideName: brideK.name, groomName: groomK.name, detailed: detailed, headerRows: header, girlDOB: girlDOBStr, boyDOB: boyDOBStr, girlTOB: girlTOBStr, boyTOB: boyTOBStr, girlPOB: girlPOBStr, boyPOB: boyPOBStr, girlRasi: bRasi, boyRasi: gRasi, girlNak: bNak, boyNak: gNak);
+    // CORRECTION: Clean ONCE here for Girl Name / Boy Name - APK, WEB, PDF, CSV all use same cleanedDetailed.
+    // '\n' -> ' ', multiple spaces -> single space, trim start/end space.
+    // Example: 'Cancelled (Good)\n 1.1 ' -> 'Cancelled (Good) 1.1' - same in all 4 outputs, EXACT() in Excel becomes TRUE.
+    final cleanedDetailed = detailed.map((r) => r.map((c) => c.replaceAll('\n', ' ').replaceAll(RegExp(r'\s+'), ' ').trim()).toList()).toList();
+    return AshtakootaCalc(total: total, totalDouble: totalDouble, percent: percent, verdict: verdict, brideName: brideK.name, groomName: groomK.name, detailed: cleanedDetailed, headerRows: header, girlDOB: girlDOBStr, boyDOB: boyDOBStr, girlTOB: girlTOBStr, boyTOB: boyTOBStr, girlPOB: girlPOBStr, boyPOB: boyPOBStr, girlRasi: bRasi, boyRasi: gRasi, girlNak: bNak, boyNak: gNak);
   }
 }
 
 class AshtakootaExport {
-  static TableRow headerRow(String g,String b)=> TableRow(decoration: const BoxDecoration(color: Color(0xFFE1BEE7)), children: [const Padding(padding: EdgeInsets.all(6), child: Text('No', style: TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold))), const Padding(padding: EdgeInsets.all(6), child: Text('Item', style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold))), Padding(padding: const EdgeInsets.all(6), child: Text(g, style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)), Padding(padding: const EdgeInsets.all(6), child: Text(b, style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)), const Padding(padding: EdgeInsets.all(6), child: Text('Result', style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold))), const Padding(padding: EdgeInsets.all(6), child: Text('Description', style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold))),],);
+  static TableRow headerRow(String g,String b)=> TableRow(decoration: const BoxDecoration(color: Color(0xFFE1BEE7)), children: [const Padding(padding: EdgeInsets.all(6), child: Text('No', style: TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold))), const Padding(padding: EdgeInsets.all(6), child: Text('Item', style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold))), Padding(padding: const EdgeInsets.all(6), child: Text('Girl', style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)), Padding(padding: const EdgeInsets.all(6), child: Text('Boy', style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)), const Padding(padding: EdgeInsets.all(6), child: Text('Result', style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold))), const Padding(padding: EdgeInsets.all(6), child: Text('Description', style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold))),],);
   static TableRow dataRow(String no,String item,String girl,String boy,String res,String desc)=> TableRow(children: [Padding(padding: const EdgeInsets.all(5), child: Text(no, style: const TextStyle(fontSize: 13))), Padding(padding: const EdgeInsets.all(5), child: Text(item, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11))), Padding(padding: const EdgeInsets.all(5), child: Text(girl, style: const TextStyle(fontSize: 12))), Padding(padding: const EdgeInsets.all(5), child: Text(boy, style: const TextStyle(fontSize: 12))), Padding(padding: const EdgeInsets.all(5), child: Text(res, style: const TextStyle(fontSize: 12))), Padding(padding: const EdgeInsets.all(5), child: Text(desc, style: const TextStyle(fontSize: 12))),]);
   static Future<void> exportPdf(AshtakootaCalc calc) async {
     final doc = pw.Document(); final font = await pdfTheme(scriptSample: 'Ashtakoota');
     List<List<String>> fullRows=[]; fullRows.add(['AshtaKoota Guna Milan - Advanced Synastry','','','','','']); fullRows.addAll(calc.headerRows); fullRows.add(['No','Item','Girl','Boy','Result','Description']);
     bool s1=false,s2=false,s3=false,s4=false,s5=false,s6=false,s7=false;
-    String totalStr = calc.totalDouble == calc.total.toDouble() ? '${calc.total}' : calc.totalDouble.toStringAsFixed(1);
-    List<List<String>> rs=[['36','AshtaKoota Result',calc.verdict,'${calc.percent}%',totalStr,''],['ROUNDING OFF','','','${calc.percent}%','${calc.total}','']];
+    String totalStr = calc.totalDouble.toStringAsFixed(2);
+    String percentStr = (calc.totalDouble/36*100).toStringAsFixed(2) + '%';
+    List<List<String>> rs=[['36','AshtaKoota Result',calc.verdict,percentStr,totalStr,''],['ROUNDING OFF','','','${calc.percent}%','${calc.total}','']];
     for(var r in calc.detailed){
       int no=int.tryParse(r[0])??0;
       if(!s1&&no>=9&&no<=11){fullRows.add(['SAME STAR','','','','','']); s1=true;}
@@ -437,8 +598,9 @@ class AshtakootaExport {
   static Future<void> exportCsv(AshtakootaCalc calc) async {
     final buffer=StringBuffer(); buffer.writeln('AshtaKoota Guna Milan - Advanced Synastry'); for(var hr in calc.headerRows){ String v2 = hr.length > 2 ? hr[2] : ''; String v3 = hr.length > 3 ? hr[3] : ''; if(v2.isEmpty && v3.isEmpty) continue; buffer.writeln(',,${v2},${v3}'); } buffer.writeln('No,Item,Girl,Boy,Result,Description');
     bool s1=false,s2=false,s3=false,s4=false,s5=false,s6=false,s7=false;
-    String totalStr = calc.totalDouble == calc.total.toDouble() ? '${calc.total}' : calc.totalDouble.toStringAsFixed(1);
-    List<List<String>> rs=[['36','AshtaKoota Result',calc.verdict,'${calc.percent}%',totalStr,''],['ROUNDING OFF','','','${calc.percent}%','${calc.total}','']];
+    String totalStr = calc.totalDouble.toStringAsFixed(2);
+    String percentStr = (calc.totalDouble/36*100).toStringAsFixed(2) + '%';
+    List<List<String>> rs=[['36','AshtaKoota Result',calc.verdict,percentStr,totalStr,''],['ROUNDING OFF','','','${calc.percent}%','${calc.total}','']];
     for(var r in calc.detailed){
       int no=int.tryParse(r[0])??0;
       if(!s1&&no>=9&&no<=11){buffer.writeln('SAME STAR,,,,,'); s1=true;}

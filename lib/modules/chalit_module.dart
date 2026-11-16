@@ -16,7 +16,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../pdf/pw.dart' as pw;
 
+import '../charts/chart_style.dart';
 import '../charts/north_chart_painter.dart';
+import '../charts/south_chart_painter.dart';
 import '../charts/pinch_zoom.dart';
 import '../charts/planet_token.dart';
 import '../core/astro/chalit.dart';
@@ -34,6 +36,7 @@ String _chalitTitle(AppLocalizations l10n) => l10n.moduleChalitTitle;
 ChalitSystem _systemFromConfig(Map<String, dynamic> config) =>
     switch (config['system']) {
       'placidus' => ChalitSystem.placidus,
+      'placidusAs' => ChalitSystem.placidusAs,
       'equal' => ChalitSystem.equal,
       _ => ChalitSystem.sripati,
     };
@@ -42,6 +45,7 @@ String _systemLabel(AppLocalizations l10n, ChalitSystem system) =>
     switch (system) {
       ChalitSystem.sripati => l10n.ccSripati,
       ChalitSystem.placidus => l10n.ccPlacidus,
+      ChalitSystem.placidusAs => '${l10n.ccPlacidus} As',
       ChalitSystem.equal => l10n.ccEqual,
     };
 
@@ -65,12 +69,14 @@ class ChalitModule extends AstroModule {
 
   @override
   List<ModuleConfigChoice> configChoices(AppLocalizations l10n) => [
+        chartStyleChoice(l10n),
         ModuleConfigChoice(
           key: 'system',
           label: l10n.cfgHouseSystem,
           options: [
             ('sripati', l10n.ccSripati),
             ('placidus', l10n.ccPlacidus),
+            ('placidusAs', '${l10n.ccPlacidus} As'),
             ('equal', l10n.ccEqual),
           ],
           defaultValue: 'sripati',
@@ -210,6 +216,15 @@ class ChalitModule extends AstroModule {
   }
 }
 
+int? _southHitToHouse(Size size, Offset local, List<({int signNumber, List<Planet> planets, String? cuspLabel, int cuspAfter})>? houseData) {
+  final sign = southSignHit(size, local);
+  if (sign == null || houseData == null) return null;
+  for (var i = 0; i < houseData.length; i++) {
+    if (houseData[i].signNumber == sign.index + 1) return i + 1;
+  }
+  return null;
+}
+
 class _ChalitBody extends ConsumerWidget {
   const _ChalitBody({required this.ctx, required this.detail});
 
@@ -222,6 +237,7 @@ class _ChalitBody extends ConsumerWidget {
     final s = ctx.snapshot;
     final system = _systemFromConfig(ctx.config);
     final showDegrees = _flag(ctx.config, 'degrees');
+    final isSouth = chartStyleFromConfig(ctx.config, ctx.chartStyle).style == ChartStyle.south;
     final showExtras = _flag(ctx.config, 'extras');
     final showCuspDegrees = _flag(ctx.config, 'cusp_degrees');
     final showCuspSigns = _flag(ctx.config, 'cusp_signs');
@@ -307,7 +323,7 @@ class _ChalitBody extends ConsumerWidget {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 void report(Offset local) {
-                  final hit = northHouseHit(
+                  final hit = isSouth ? _southHitToHouse(Size(constraints.maxWidth, constraints.maxHeight), local, houseData) : northHouseHit(
                       Size(constraints.maxWidth, constraints.maxHeight), local);
                   if (hit == null) return;
                   final original = ((viewHouse - 1 + hit - 1) % 12) + 1;
@@ -326,7 +342,24 @@ class _ChalitBody extends ConsumerWidget {
                   onDoubleTap: () {},
                   onLongPressStart: (t) => report(t.localPosition),
                   child: CustomPaint(
-                    painter: NorthChartPainter(
+                    painter: isSouth
+                        ? SouthChartPainter(
+                            l10n: l10n,
+                            placements: const {},
+                            lagna: s.lagnaSign,
+                            trueAscendantSign: s.lagnaSign,
+                            ascendantDegree: s.ascendant,
+                            retrograde: {
+                              for (final p in s.positions.values) p.planet: p.isRetrograde,
+                            },
+                            tokens: tokens,
+                            showDegrees: showDegrees,
+                            houseData: houseData,
+                            ascendantHouse: ascendantHouse,
+                            boundaryLabels: boundaryLabels,
+                            ascendantRank: d.madhyaRank[0],
+                          )
+                        : NorthChartPainter(
                       l10n: l10n,
                       // Sign-keyed inputs are unused in houseData mode
                       // but required by the painter's base contract.

@@ -359,14 +359,25 @@ class _BirthChartCardBodyState extends ConsumerState<_BirthChartCardBody> {
     final isLive = fixed == null;
 
     Map<ZodiacSign, List<Planet>>? transitPlace;
+    double? tlAsc;
     var transitRetro = const <Planet, bool>{};
     if (widget.showTransit) {
       final tPos = transit.currentTransitPositions(
           ayanamsaId: s.ayanamsaId, at: fixed ?? DateTime.now());
       transitPlace = transit.transitPlacements(tPos);
       transitRetro = {for (final p in tPos.values) p.planet: p.isRetrograde};
+      tlAsc = transit.transitAscendant(
+          at: fixed ?? DateTime.now(),
+          latitude: s.birth.latitude,
+          longitude: s.birth.longitude,
+          ayanamsaId: s.ayanamsaId);
     }
 
+    var padaLabels = widget.padaLabels;
+    if (tlAsc != null) {
+      padaLabels = {for (final e in padaLabels.entries) e.key: [...e.value]};
+      (padaLabels[ZodiacSign.fromLongitude(tlAsc!)] ??= []).add('TL');
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -385,7 +396,7 @@ class _BirthChartCardBodyState extends ConsumerState<_BirthChartCardBody> {
           showKarakas: widget.showKarakas,
           transitPlacements: transitPlace,
           transitRetrograde: transitRetro,
-          padaLabels: widget.padaLabels,
+          padaLabels: padaLabels,
           // Tapping the lagna's own house resets — unless a legacy
           // 'view_from' config would then re-rotate, in which case the
           // lagna sign is stored explicitly to override it.

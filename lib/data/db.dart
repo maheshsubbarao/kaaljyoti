@@ -97,15 +97,33 @@ class AppDb {
         );
       } catch (_) {}
 
-      // Try 3: NEVER DELETE. Quarantine and rethrow - user data > clean start.
+      // Try 3: Boss Fix - Quarantine old locked DB, delete locked DB, create fresh DB so Import can work.
       try {
         final file = File(path);
         if (await file.exists()) {
           final q = "$path.quarantine.${DateTime.now().millisecondsSinceEpoch}";
           try { await file.copy(q); } catch(_){}
         }
+        try { await file.delete(); } catch(_){}
+        try { await File("$path-wal").delete(); } catch(_){}
+        try { await File("$path-shm").delete(); } catch(_){}
+        try { await File("$path-journal").delete(); } catch(_){}
       } catch (_) {}
-      rethrow;
+      final freshKey = _randomKey();
+      try { await _keyService.write(freshKey); } catch(_){}
+      return await sqlcipher_sqflite.openDatabase(
+        path,
+        password: freshKey,
+        version: 11,
+        onConfigure: (db) async {
+          try { await db.execute('PRAGMA foreign_keys = ON'); } catch(_){}
+        },
+        onCreate: (db, v) async {
+          await _createAllTables(db);
+          try { await db.insert('dashboard_views', {'id':'default_view','name':'Default','position':0}); } catch(_){}
+        },
+        onOpen: (db) async {},
+      );
       }
   }
 

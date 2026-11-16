@@ -27,6 +27,10 @@ enum ChalitSystem {
   /// Placidus madhyas — the cusp-based schools' convention.
   placidus,
 
+  /// Placidus As: House 1 Cusp = Ascendant, each house exactly 30° wide.
+  /// Madhya = Cusp + 15°, so House 1 = Asc to Asc+30°, not centred on Asc.
+  placidusAs,
+
   /// Equal bhavas: madhya = the lagna degree in every sign, each house
   /// exactly 30° wide (samabhava, common in North Indian panchangas).
   equal,
@@ -98,6 +102,9 @@ int houseOfIn(List<double> sandhi, double longitude) {
 ChalitData computeChalit(AstroSnapshot s, ChalitSystem system) {
   final madhya = switch (system) {
     ChalitSystem.placidus => s.houseCusps,
+    ChalitSystem.placidusAs => [
+        for (var i = 0; i < 12; i++) _norm360(s.ascendant + 15.0 + 30.0 * i),
+      ],
     ChalitSystem.equal => [
         for (var i = 0; i < 12; i++) _norm360(s.ascendant + 30.0 * i),
       ],

@@ -28,6 +28,7 @@ Akash Ambani Son:::10#11#2023#11#40#0#5#30#1#Mumbai, India#72#53#0#19#4#0#0#0
 Akhilesh Yadav:::24#9#1972#6#25#0#5#30#1#Etawah Uttar Pradesh, India#79#1#0#26#46#0#0#0
 Akkineni Nagarjuna:::29#7#1959#0#27#0#5#30#1#Chennai, India#80#17#0#13#5#0#0#0
 Akshay Anilkumar:::10#2#1996#9#5#1#5#30#1#Mysore, India#76#38#0#12#18#0#0#0
+Akshay Kumar YB:::1#9#1997#5#0#0#5#30#1#Sagar, India#75#2#0#14#10#0#0#0
 Al Assad Bashar:::11#8#1965#12#0#1#3#0#1#Damascus, Syria#36#18#0#33#30#0#0#0
 Alia Bhatt:::15#2#1993#4#10#0#5#30#1#Mumbai, India#72#50#0#18#58#0#0#0
 All India Muslim League:::30#11#1906#12#0#1#6#0#1#Dhaka, Bangladesh#90#24#0#23#43#0#0#0
@@ -43,6 +44,7 @@ Amruthavalli:::26#11#1996#5#10#1#5#30#1#Inkollu, India#80#12#0#15#50#0#0#0
 Anagha:::28#5#1993#11#55#1#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 Anagha A:::25#4#2000#2#4#1#5#30#1#Mysore, India#76#38#0#12#18#0#0#0
 Anant Ambani:::10#3#1995#0#0#0#5#30#1#Mumbai, India#72#53#0#19#4#0#0#0
+Ananya N:::18#0#2001#3#14#1#5#30#1#Palladam, India#77#17#0#11#0#0#0#0
 Ananya NC:::27#7#1990#12#40#1#5#30#1#Mudigere, India#75#38#0#13#8#0#0#0
 Anil Ambani:::4#5#1959#9#30#1#5#30#1#Mumbai, India#72#50#0#18#58#0#0#0
 Anisha:::30#8#1991#5#15#1#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
@@ -60,6 +62,7 @@ Apoorvashree:::24#6#1994#11#15#1#5#30#1#Kolar, India#77#25#0#30#31#0#0#0
 AR Rahman:::6#0#1967#5#50#0#5#30#1#Chennai, India#80#17#0#13#5#0#0#0
 Aravind Cipla:::8#11#1967#9#50#0#5#30#1#New Delhi, India#77#35#0#12#59#0#0#0
 Arjun Apoorva:::26#4#1990#9#41#0#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
+Arjun Raju:::25#6#1995#2#2#1#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 Arjun S CRP:::17#2#1998#7#0#1#5#30#1#Channarayapatna, India#76#23#0#12#54#0#0#0
 Arjun Tendulkar:::24#8#1999#10#30#0#5#30#1#Mumbai, India#72#50#0#18#58#0#0#0
 Arundhati Roy:::24#10#1961#12#0#1#5#30#1#Shillong, India#91#53#0#25#34#0#0#0
@@ -102,6 +105,7 @@ Bill Clinton:::19#7#1946#8#51#0#6#0#-1#Hope, USA#93#35#1#33#40#0#0#0
 Bill Gates:::28#9#1955#10#0#1#8#0#-1#Seattle WA, USA#122#20#1#47#36#0#0#0
 BJP:::6#3#1980#11#45#0#5#30#1#New Delhi, India#77#35#0#12#59#0#0#0
 BK Hariprasad:::29#6#1954#12#0#1#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
+Brinda A:::26#6#1999#0#55#0#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 BRS:::5#9#2022#1#19#1#5#30#1#Hyderabad, India#78#28#0#17#23#0#0#0
 BS Yeddyurappa:::27#1#1943#2#35#0#5#30#1#Bookanakere, India#76#31#0#12#33#0#0#0
 BS Yeddyurappa 1:::27#1#1943#3#0#0#5#30#1#Mandya, India#76#53#0#12#31#0#0#0
@@ -138,6 +142,7 @@ Deepak Chopra:::22#9#1946#3#45#1#5#30#1#New Delhi, India#77#12#0#28#36#0#0#0
 Deepika Padukone:::5#0#1986#10#0#0#1#0#1#Copenhagen, Denmark#12#35#0#55#40#0#0#0
 Devaraj:::4#8#1993#6#30#0#5#30#1#Channarayapatna, India#76#23#0#12#54#0#0#0
 Devendra Fadnavis:::22#6#1970#6#0#0#5#30#1#Nagpur, India#79#12#0#21#10#0#0#0
+Dheeraj:::3#7#1996#1#30#0#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 Dhirubhai Ambani:::28#11#1932#6#37#0#5#30#1#Veraval, India#70#22#0#20#54#0#0#0
 Dhyanachandra:::3#2#1993#1#35#1#5#30#1#Harihar, India#75#48#0#14#31#0#0#0
 Dia Mirza:::9#11#1981#5#15#1#5#30#1#Hyderabad, India#78#28#0#17#23#0#0#0
@@ -157,6 +162,8 @@ Eshwar Kumar:::8#0#1998#6#0#1#5#30#1#Chittoor, India#79#7#0#13#12#0#0#0
 Euro Cur Launch:::1#0#1999#0#0#0#1#0#1#Frankfurt, Germany#10#32#0#49#41#0#0#0
 Falguni Pathak:::12#2#1964#6#0#0#5#30#1#Baroda, India#73#12#0#22#18#0#0#0
 Farooq Abdulla:::12#1#1936#5#44#0#5#30#1#Srinagar, India#74#49#0#34#50#0#0#0
+Gagan M:::24#8#1996#4#45#1#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
+Gagan MS:::24#9#1993#7#10#0#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 Ganesh:::7#9#1995#7#17#0#5#30#1#Mysore, India#76#38#0#12#18#0#0#0
 Ganesh Mungaru Male:::2#6#1977#12#0#1#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 Ganesh Suprita:::12#7#1983#1#50#0#5#30#1#Koteshwar, India#74#42#0#13#35#0#0#0
@@ -182,6 +189,7 @@ HD Revanna:::17#11#1957#5#30#0#5#30#1#Haradanahalli, India#76#56#0#11#52#0#0#0
 Hema Malini:::16#9#1948#0#30#0#5#30#1#Tiruchirappalli, India#78#41#0#10#49#0#0#0
 Hemant Soren:::10#7#1975#4#0#1#5#30#1#Ramgarh Jharkhand, India#85#20#0#23#21#0#0#0
 Hemant Soren Oath 2019:::29#11#2019#2#21#1#5#30#1#Ranchi Jharkhand, India#85#20#0#23#21#0#0#0
+Hemanth Kumar S:::24#7#1995#10#0#0#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 Hemanth Raj:::13#2#1995#10#10#0#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 Hima:::18#1#1997#5#20#1#5#30#1#Mudigere, India#75#38#0#13#8#0#0#0
 Himanta Biswa Sarma:::1#1#1969#12#0#1#5#30#1#Jorhat Assam, India#94#13#0#26#45#0#0#0
@@ -300,6 +308,7 @@ MK Stalin:::1#2#1953#11#50#1#5#30#1#Chennai, India#80#17#0#13#50#0#0#0
 MK Stalin Oath 2021:::7#4#2021#9#18#0#5#30#1#Chennai, India#80#17#0#13#50#0#0#0
 Modi Mother Death:::30#11#2022#3#39#0#5#30#1#New Delhi, India#77#12#0#28#36#0#0#0
 Mohandas Gandhi:::2#9#1869#7#8#0#5#30#1#Porbandar, India#69#36#0#21#38#0#12#0
+Mohan Gowda:::20#4#1994#0#0#0#5#30#1#Mysore, India#76#38#0#12#18#0#0#0
 MS Viswanathan:::24#5#1928#10#30#0#5#30#1#Palakkad, India#76#39#0#10#47#0#0#0
 Mukesh Ambani:::19#3#1957#7#13#1#3#0#1#Adena, Yemen#44#37#0#13#33#0#0#0
 Muruli:::7#9#1961#0#30#0#5#30#1#Channapatna, India#77#13#0#12#39#0#0#0
@@ -533,6 +542,7 @@ Priyanka Chopra:::18#6#1982#1#30#0#5#30#1#Jamshedpur, India#86#11#0#22#48#0#0#0
 Priyanka Gandhi:::12#0#1972#5#5#1#5#30#1#New Delhi, India#77#13#0#28#40#0#0#0
 Puneeth Rajkumar:::17#2#1975#9#13#0#5#30#1#Chennai, India#80#17#0#13#5#0#0#0
 Puneeth Rajkumar Web:::17#2#1975#6#7#1#5#30#1#Chennai, India#80#17#0#13#5#0#0#0
+Punith S:::6#3#1993#7#15#0#5#30#1#Hassan, India#76#5#0#13#0#0#0#0
 Pushpa:::26#0#1958#12#47#1#5#30#1#Sakleshpur, India#75#47#0#12#58#0#0#0
 PV Narasimha Rao:::28#5#1921#11#30#0#5#30#1#Karimnagar, India#79#9#0#18#26#0#0#0
 PVR Narasimha Rao:::4#3#1970#5#50#1#5#30#1#Machilipatnam, India#81#8#0#16#10#0#40#0
@@ -623,8 +633,10 @@ Sharad Pawar:::12#11#1940#6#30#0#5#30#1#Baramati, India#74#35#0#18#9#0#0#0
 Sharan:::12#6#1997#7#30#0#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 Sharan S:::28#7#1999#2#30#0#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 Sharanya:::24#9#1997#11#3#0#5#30#1#Mysore, India#76#38#0#12#18#0#0#0
+Sharanya G:::27#7#1993#7#45#1#5#30#1#Thirthahalli, India#75#15#0#13#41#0#0#0
 Sharath K:::6#7#1981#5#25#0#5#30#1#Malavalli, India#77#5#0#12#23#0#0#0
 Sharath Kumar Shetty:::28#1#1994#11#50#1#5#30#1#Udupi, India#74#45#0#13#21#0#0#0
+Sharmada HS:::4#1#1998#0#20#0#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 Shashi Kapoor:::18#2#1938#3#6#0#5#53#1#Calcutta, India#88#22#0#22#32#0#33#0
 Sheelavathi:::23#9#1974#9#30#1#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 Sheikh Hasina By Wiki:::28#8#1947#11#0#0#6#0#1#Tungipara, Bangladesh#89#55#0#22#54#0#0#0
@@ -724,6 +736,7 @@ Steve Jobs:::24#1#1955#7#15#1#8#0#-1#San Francisco, USA#122#25#1#37#46#0#0#0
 Subbulakshmi MS:::16#8#1916#9#30#0#5#30#1#Madurai, India#78#7#0#9#56#0#0#0
 Subhas Chandra Bose:::23#0#1897#12#15#1#5#21#1#Cuttack, India#85#50#0#20#30#0#0#0
 Subramanian Swamy:::15#8#1939#4#30#0#5#30#1#Chennai, India#80#17#0#13#5#0#0#0
+Sudarshan:::5#9#1991#10#20#1#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 Sudha Murthy:::19#7#1950#12#0#1#5#30#1#Shimogga, India#75#34#0#13#55#0#0#0
 Sughosh Kumar:::16#9#1990#5#30#0#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
 Suhas:::11#5#1996#11#45#0#5#30#1#Mysore, India#76#38#0#12#18#0#0#0
@@ -781,6 +794,7 @@ Vanitha:::5#9#1958#2#30#0#5#30#1#Malavalli, India#77#5#0#12#23#0#0#0
 Varalakshmi Bhanu:::28#4#1949#7#30#0#5#30#1#Mudigere, India#75#38#0#13#8#0#0#0
 Varshini:::23#10#1999#8#15#1#5#30#1#Chikmagalur, India#75#47#0#13#19#0#0#0
 Varshith:::8#10#2014#11#16#1#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
+Varun BK:::30#6#1991#4#9#0#5#30#1#Shimoga, India#75#34#0#13#55#0#0#0
 Vasantha Mallinathapura:::24#4#1961#5#23#0#5#30#1#Mallinathapura, India#77#10#0#12#32#0#0#0
 Vasundhara Raje:::8#2#1953#4#45#1#5#30#1#Mumbai, India#72#50#0#18#58#0#0#0
 Vedavarshini Bhanu:::1#0#1999#3#30#0#5#30#1#Bangalore, India#77#35#0#12#59#0#0#0
@@ -800,6 +814,7 @@ Vijaya Bharathi:::15#7#1963#4#30#0#5#30#1#Malavalli, India#77#5#0#12#23#0#0#0
 Vijaya Laksmi:::28#0#1969#3#0#1#5#30#1#Channapatna, India#77#13#0#12#39#0#0#0
 Vikshita:::7#3#2003#5#35#0#5#30#1#Sindhanur Raichur, India#76#45#0#15#46#0#0#0
 Vinay:::30#8#1989#3#30#1#5#30#1#Mudigere, India#75#38#0#13#8#0#0#0
+Vinay E:::15#9#1993#2#10#0#5#30#1#Tumkur, India#77#6#0#16#31#0#0#0
 Vinay Guruji:::24#7#1988#10#0#1#5#30#1#Sringeri, India#75#15#0#13#25#0#0#0
 Vinay Gurujis Brother:::27#3#1986#12#0#1#5#30#1#Sringeri, India#75#15#0#13#25#0#0#0
 Vinayak Damodar Savarka:::28#4#1883#9#25#1#5#30#1#Nasik, India#73#53#0#20#20#0#0#0
@@ -832,4 +847,3 @@ Yug Devgn:::13#8#2010#9#20#0#5#30#1#Mumbai, India#72#50#0#18#58#0#0#0
 Yunus Mohammad:::28#5#1940#0#0#0#6#0#1#Chittagong, Bangladesh#91#50#0#22#20#0#0#0
 Yuvraj Singh:::12#11#1981#12#0#1#5#30#1#Chandigarh, India#76#47#0#30#44#0#0#0
 Zohran Mamdani:::18#9#1991#1#15#0#3#0#1#Kampala, Uganda#32#35#0#0#19#0#0#0
-Zohran Mamdani:::18#9#2026#1#15#0#3#0#1#Kampala, Uganda#32#35#0#0#19#0#0#0

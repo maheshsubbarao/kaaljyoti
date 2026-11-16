@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../core/astro/models.dart';
 import '../core/theme/theme.dart';
 import '../l10n/astro_l10n.dart';
@@ -39,6 +38,10 @@ class SouthChartPainter extends CustomPainter {
     this.transitPlacements,
     this.transitRetrograde = const {},
     this.padaLabels = const {},
+    this.houseData,
+    this.ascendantHouse,
+    this.boundaryLabels,
+    this.ascendantRank,
     this.directionalStack = true,
     // Repaint live when the chart text settings change.
   }) : super(repaint: chartTuning);
@@ -61,6 +64,10 @@ class SouthChartPainter extends CustomPainter {
   /// Arudha pada codes ('1P' … '12P') per sign, rendered as a light-
   /// grey trailing line in each cell (Parashar Light style).
   final Map<ZodiacSign, List<String>> padaLabels;
+  final List<({int signNumber, List<Planet> planets, String? cuspLabel, int cuspAfter})>? houseData;
+  final int? ascendantHouse;
+  final List<String>? boundaryLabels;
+  final int? ascendantRank;
 
   /// Whether planet stacks follow the zodiacal progression spatially
   /// (left-column cells reversed — that edge runs upward). Divisional
@@ -93,7 +100,7 @@ class SouthChartPainter extends CustomPainter {
     final rect = (Offset.zero & size).deflate(strokeW / 2);
     final cellW = rect.width / 4;
     final cellH = rect.height / 4;
-    final trueAsc = trueAscendantSign ?? lagna;
+    final trueAsc = houseData != null ? ZodiacSign.values[houseData![(ascendantHouse ?? 1) - 1].signNumber - 1] : (trueAscendantSign ?? lagna);
 
     Rect cellRect(int row, int col) => Rect.fromLTWH(
           rect.left + col * cellW,
@@ -139,6 +146,12 @@ class SouthChartPainter extends CustomPainter {
     );
 
     final tune = chartTuning.value; // Settings > Chart text
+    final housesBySign = <ZodiacSign, List<int>>{};
+    if (houseData != null) {
+      for (var i = 0; i < houseData!.length; i++) {
+        (housesBySign[ZodiacSign.values[houseData![i].signNumber - 1]] ??= []).add(i);
+      }
+    }
     final planetSize = base * 0.036 * tune.baseScale;
     final signSize = base * 0.024 * tune.signScale;
     final pad = cellW * 0.06;
@@ -185,10 +198,14 @@ class SouthChartPainter extends CustomPainter {
 
       // Planet labels, centered and wrapped/shrunk to fit within the
       // cell — replaces the old single unbroken joined string.
-      final planets = placements[sign] ?? const <Planet>[];
-      final transitPlanets = transitPlacements?[sign] ?? const <Planet>[];
-      final padas = padaLabels[sign] ?? const <String>[];
-      if (planets.isEmpty && transitPlanets.isEmpty && padas.isEmpty) {
+      final planets = houseData != null ? [for (final i in housesBySign[sign] ?? const <int>[]) ...houseData![i].planets] : placements[sign] ?? const <Planet>[];
+      final transitPlanets = houseData != null ? const <Planet>[] : transitPlacements?[sign] ?? const <Planet>[];
+      final sandhiLabel = houseData != null && boundaryLabels != null ? [for (final i in housesBySign[sign] ?? const <int>[]) if (i < boundaryLabels!.length && boundaryLabels![i].isNotEmpty) 'S ${boundaryLabels![i]}'].join(' ') : null;
+      final padas = houseData != null ? (sandhiLabel != null ? [sandhiLabel] : const <String>[]) : padaLabels[sign] ?? const <String>[];
+      final cuspLabel = houseData != null ? [for (final i in housesBySign[sign] ?? const <int>[]) if (houseData![i].cuspLabel != null) houseData![i].cuspLabel!].join(' ') : null;
+      final cuspAfter = houseData != null && (housesBySign[sign]?.isNotEmpty ?? false) ? houseData![housesBySign[sign]!.first].cuspAfter : 0;
+      final isTrueAscCell = sign == trueAsc;
+      if (planets.isEmpty && transitPlanets.isEmpty && padas.isEmpty && cuspLabel == null && sandhiLabel == null && !isTrueAscCell) {
         continue;
       }
       final planetTokens = [
@@ -202,6 +219,8 @@ class SouthChartPainter extends CustomPainter {
         transitPlanets: transitPlanets,
         transitRetrograde: transitRetrograde,
         padaLabels: padas,
+        cuspLabel: cuspLabel,
+        cuspAfter: cuspAfter,
         // The fixed grid progresses clockwise; its left edge runs UPWARD
         // (Sagittarius → Capricorn → Aquarius → Pisces), so those cells
         // stack later-degree planets on top — each planet toward the
@@ -244,6 +263,10 @@ class SouthChartPainter extends CustomPainter {
       oldDelegate.transitPlacements != transitPlacements ||
       oldDelegate.transitRetrograde != transitRetrograde ||
       oldDelegate.padaLabels != padaLabels ||
+      oldDelegate.houseData != houseData ||
+      oldDelegate.ascendantHouse != ascendantHouse ||
+      oldDelegate.boundaryLabels != boundaryLabels ||
+      oldDelegate.ascendantRank != ascendantRank ||
       oldDelegate.directionalStack != directionalStack ||
       oldDelegate.l10n != l10n ||
       oldDelegate._palette != _palette;

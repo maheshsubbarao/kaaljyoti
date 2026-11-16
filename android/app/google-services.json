@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "340849360548",
+    "project_id": "mastrology-24b18",
+    "storage_bucket": "mastrology-24b18.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:340849360548:android:81806fc4a99ee86db9b031",
+        "android_client_info": {
+          "package_name": "com.example.mastrology"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfO5Ocl6NyQfs81ntgFA7F-TZmj_YddfY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -159,13 +159,13 @@ List<InlineSpan> _natalChipSpans(
   bool compactDegrees = false,
 }) {
   final tune = chartTuning.value; // Settings > Chart text
-  final modSize = fontSize * tune.annotationScale;
-  final ink = planetInk(t.planet);
-  final base = KJTheme.mono(size: fontSize, color: ink, weight: tune.weight);
-  final mod = KJTheme.mono(size: modSize, color: KJColors.inkSoft);
-  final degreeStyle = KJTheme.mono(size: modSize, color: KJColors.inkSoft);
+  final modSize = fontSize;
+  final ink = KJColors.forest;
+  final base = KJTheme.mono(size: fontSize, color: ink, weight: FontWeight.normal);
+  final mod = KJTheme.mono(size: modSize, color: KJColors.forest);
+  final degreeStyle = KJTheme.mono(size: modSize, color: KJColors.forest);
   final karakaStyle = KJTheme.mono(
-      size: modSize, color: KJColors.maroon, weight: FontWeight.w600);
+      size: modSize, color: KJColors.forest, weight: FontWeight.normal);
 
   final spans = <InlineSpan>[
     TextSpan(text: t.planet.abbrLabel(l10n), style: base)
@@ -206,25 +206,42 @@ List<InlineSpan> _natalChipSpans(
   return spans;
 }
 
-/// A transit (current-sky) planet chip: lowercase, italic, transit
+/// A transit (current-sky) planet chip: Western glyph, transit
 /// green — visually distinct from natal planets.
-///
-/// `toLowerCase()` is a no-op in caseless scripts (Devanagari and most
-/// Indic scripts), so there the italic + transit-green carry the whole
-/// distinction. That still reads clearly; it just isn't reinforced by
-/// case the way the Latin tokens are.
+/// Boss Fix: Transit ONLY glyph. Natal stays letters in _natalChipSpans.
+String _transitGlyph(Planet p) => switch (p) {
+      Planet.sun => '☉',
+      Planet.moon => '☽',
+      Planet.mars => '♂',
+      Planet.mercury => '☿',
+      Planet.jupiter => '♃',
+      Planet.venus => '♀',
+      Planet.saturn => '♄',
+      Planet.rahu => '☊',
+      Planet.ketu => '☋',
+    };
+
 List<InlineSpan> _transitChipSpans(
     AppLocalizations l10n, Planet p, bool retrograde, double fontSize) {
-  final base = KJTheme.mono(size: fontSize * 0.85, color: KJColors.transit)
-      .copyWith(fontStyle: FontStyle.italic);
+  // TRANSIT ONLY: one font + one size + bold for ALL glyphs, so
+  // Sun / Moon / Saturn / Mercury look exactly like Mars.
+  // Natal in _natalChipSpans is untouched.
+  final base = TextStyle(
+    fontFamily: 'Noto Sans Symbols2',
+    fontFamilyFallback: const ['Noto Sans Symbols2', 'DejaVu Sans'],
+    fontSize: fontSize * 1.35,
+    color: KJColors.transit,
+    fontWeight: FontWeight.w600,
+    height: 1.0,
+  );
   final spans = <InlineSpan>[
-    TextSpan(text: p.abbrLabel(l10n).toLowerCase(), style: base),
+    TextSpan(text: _transitGlyph(p), style: base),
   ];
   final isNode = p == Planet.rahu || p == Planet.ketu;
   if (!isNode && retrograde) {
     spans.add(TextSpan(
         text: '®',
-        style: KJTheme.mono(size: fontSize * 0.95, color: KJColors.transit)));
+        style: base.copyWith(fontSize: fontSize * 1.15)));
   }
   return spans;
 }
@@ -416,9 +433,19 @@ class HouseLabelLayout {
       size: fontSize * 0.85,
       color: KJColors.inkSoft.withValues(alpha: 0.65),
     );
+    // TL ONLY: Transit Lagna uses Mars transit style - same font, size,
+    // bold, Green-Teal. SAV numbers / pada codes keep grey padaStyle.
+    final tlStyle = TextStyle(
+      fontFamily: 'Noto Sans Symbols2',
+      fontFamilyFallback: const ['Noto Sans Symbols2', 'DejaVu Sans'],
+      fontSize: fontSize * 1.35,
+      color: KJColors.transit,
+      fontWeight: FontWeight.w600,
+      height: 1.0,
+    );
     final padaChips = <(List<InlineSpan>, double)>[
       for (final l in padaLabels)
-        _measure([TextSpan(text: l, style: padaStyle)]),
+        _measure([TextSpan(text: l, style: l.startsWith('TL') ? tlStyle : padaStyle)]),
     ];
     // Bhava madhya line — same recessive grey as padas, but it sits
     // WITHIN the planet block (as its own row) rather than after it.

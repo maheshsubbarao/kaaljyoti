@@ -25,27 +25,34 @@ class SocialAuth {
       throw StateError('Google sign-in is not configured '
           '(GOOGLE_WEB_CLIENT_ID missing).');
     }
-    final google = GoogleSignIn(
-      // On iOS the app's own client id; serverClientId (the WEB
-      // client) is what ends up in the idToken audience that
-      // Supabase validates.
-      clientId: kGoogleIosClientId.isEmpty ? null : kGoogleIosClientId,
-      serverClientId: kGoogleWebClientId,
-    );
-    final account = await google.signIn();
-    if (account == null) throw SocialAuthCancelled();
-    final auth = await account.authentication;
-    final idToken = auth.idToken;
-    if (idToken == null) {
-      throw StateError('Google returned no ID token — check that the '
-          'web client ID is set as serverClientId.');
-    }
-    await _client.auth.signInWithIdToken(
-      provider: OAuthProvider.google,
-      idToken: idToken,
-      accessToken: auth.accessToken,
-    );
+   final google = GoogleSignIn.instance;
+
+await google.initialize(
+  clientId: kGoogleIosClientId.isEmpty ? null : kGoogleIosClientId,
+  serverClientId: kGoogleWebClientId,
+);
+
+GoogleSignInAccount account;
+try {
+  account = await google.authenticate();
+} on GoogleSignInException catch (e) {
+  if (e.code == GoogleSignInExceptionCode.canceled) {
+    throw SocialAuthCancelled();
   }
+  rethrow;
+}
+
+final auth = await account.authentication;
+final idToken = auth.idToken;
+if (idToken == null) {
+  throw StateError('Google returned no ID token — check that the '
+      'web client ID is set as serverClientId.');
+}
+await _client.auth.signInWithIdToken(
+  provider: OAuthProvider.google,
+  idToken: idToken,
+);
+  }   // <-- ADD THIS LINE, this closes signInWithGoogle
 
   /// Apple: native sheet -> identityToken (+ nonce) -> Supabase
   /// session. iOS only in this app.
